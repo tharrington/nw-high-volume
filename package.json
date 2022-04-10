@@ -38,10 +38,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettier": "prettier --write \"**/*.{css,html,js,json,md}\"",
     "build": "rm -fr public/scripts && mkdir -p public/scripts && browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] client/*.js | uglifyjs > public/scripts/bundle.min.js",
-    "start": "nodemon server/index.js",
-    "build-n-start": "npm run build && npm run start",
-    "preinstall": "rm -fr public/assets",
-    "postinstall": "cp -r node_modules/@salesforce-ux/design-system/assets public"
+    "start": "node server/index.js",
+    "build-n-start": "npm run build && npm run start"
   },
   "keywords": [
     "React",
