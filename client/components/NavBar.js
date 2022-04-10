@@ -19,9 +19,9 @@ export default class NavBar extends React.Component {
               </div>
               <div className="slds-media__body">
                 <p className="slds-page-header__title slds-truncate slds-align-middle" title="Salesforce React Integration">
-                  Salesforce React Integration
+                  Neighborworks High Volume Submissions
                 </p>
-                <p className="slds-text-body--small page-header__info">A sample integration project between Salesforce Platform and a React application</p>
+                <p className="slds-text-body--small page-header__info">Submit High Volume 9902 Data</p>
               </div>
             </div>
           </div>

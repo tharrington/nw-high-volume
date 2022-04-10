@@ -32,6 +32,7 @@ export default class App extends React.Component {
 
   handleQueryExecution = (data) => {
     // Send SOQL query to server
+    console.log('### data.query: ' + data.query);
     const queryUrl = '/query?q=' + encodeURI(data.query);
     fetch(queryUrl, {
       headers: {
@@ -39,15 +40,19 @@ export default class App extends React.Component {
       },
       cache: 'no-store'
     }).then((response) => {
-      response.json().then((json) => {
-        if (response.ok) {
-          this.setState({ result: JSON.stringify(json, null, 2) });
-        } else {
-          this.setState({
-            result: 'Failed to retrieve query result.'
-          });
-        }
-      });
+      console.log('### response: ', response);
+      this.setState({ result : response.statusText });
+      // response.json().then((json) => {
+      //   if (response.ok) {
+      //     var option = {omitXmlDeclaration: false};
+      //     // this.setState({ result: JSON.stringify(json, null, 2) });
+      //     this.setState({ result : XML.stringify(option, result)});
+      //   } else {
+      //     this.setState({
+      //       result: 'Failed to retrieve query result.'
+      //     });
+      //   }
+      // });
     });
   };
 

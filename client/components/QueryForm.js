@@ -1,13 +1,17 @@
 import React from 'react';
+var builder = require('xmlbuilder');
+var doc = builder.create('root');
+
 
 export default class QueryForm extends React.Component {
   state = {
-    query: 'SELECT Id, Name FROM User LIMIT 10'
+    query: 'a28e0000003fNVaAAM'
   };
 
   handleSubmit = (e) => {
     e.preventDefault();
     const query = this.state.query.trim();
+    console.log('### query: ' + query);
     if (!query) {
       return;
     }
@@ -26,10 +30,10 @@ export default class QueryForm extends React.Component {
             <abbr className="slds-required" title="required">
               *
             </abbr>
-            Query
+            Enter 9902 Record Id
           </label>
           <div className="slds-form-element__control">
-            <textarea id="soqlQuery" className="slds-textarea" placeholder="Enter a SOQL query" value={this.state.query} onChange={this.handleQueryChange} required=""></textarea>
+            <textarea id="soqlQuery" className="slds-textarea" placeholder="Enter a record id" value={this.state.query} onChange={this.handleQueryChange} required=""></textarea>
           </div>
         </div>
 

@@ -8,13 +8,17 @@
   "main": "server/server.js",
   "dependencies": {
     "@salesforce-ux/design-system": "^2.16.2",
+    "axios": "^0.26.1",
     "browserify": "^17.0.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-session": "^1.17.2",
     "jsforce": "^1.10.1",
     "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "request": "^2.88.2",
+    "xmlbuilder": "^15.1.1",
+    "xmlbuilder2": "^3.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
@@ -28,7 +32,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "prettier": "prettier --write \"**/*.{css,html,js,json,md}\"",
     "build": "rm -fr public/scripts && mkdir -p public/scripts && browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] client/*.js | uglifyjs > public/scripts/bundle.min.js",
-    "start": "node server/index.js",
+    "start": "nodemon server/index.js",
     "build-n-start": "npm run build && npm run start",
     "preinstall": "rm -fr public/assets",
     "postinstall": "cp -r node_modules/@salesforce-ux/design-system/assets public"
