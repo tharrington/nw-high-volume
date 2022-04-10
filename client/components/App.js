@@ -42,17 +42,7 @@ export default class App extends React.Component {
     }).then((response) => {
       console.log('### response: ', response);
       this.setState({ result : response.statusText });
-      // response.json().then((json) => {
-      //   if (response.ok) {
-      //     var option = {omitXmlDeclaration: false};
-      //     // this.setState({ result: JSON.stringify(json, null, 2) });
-      //     this.setState({ result : XML.stringify(option, result)});
-      //   } else {
-      //     this.setState({
-      //       result: 'Failed to retrieve query result.'
-      //     });
-      //   }
-      // });
+
     });
   };
 

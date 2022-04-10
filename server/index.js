@@ -491,5 +491,4 @@ app.get('/query', (request, response) => {
 
 
 app.listen(app.get('port'), () => {
-  console.log('Server started: http://localhost:' + app.get('port') + '/');
 });
