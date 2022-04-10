@@ -1,12 +1,18 @@
 {
-  "name": "salesforce-react-integration",
+  "name": "nw-high-volume",
   "version": "2.0.1",
-  "author": "Philippe Ozil",
-  "description": "Sample integration project between Salesforce and a React application",
-  "license": "see LICENSE file",
+  "author": "Tyler Harrington",
+  "description": "NW High Volume App",
+  "license": "None",
   "private": true,
   "main": "server/server.js",
   "dependencies": {
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
+    "babelify": "^10.0.0",
+    "prettier": "^2.4.1",
+    "uglify-js": "^3.14.3",
     "@salesforce-ux/design-system": "^2.16.2",
     "axios": "^0.26.1",
     "browserify": "^17.0.0",
@@ -45,7 +51,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/pozil/salesforce-react-integration"
+    "url": "https://github.com/tahrrington/nw-high-volume"
   },
   "engines": {
     "node": ">= 14.17.0"
