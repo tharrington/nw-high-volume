@@ -72,7 +72,7 @@ export default class App extends React.Component {
       //   console.log(json);
       //
       // });
-      // this.setState({ result : response.statusText });
+      this.setState({ result : response.statusText });
     });
   };
 
