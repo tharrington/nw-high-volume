@@ -6,6 +6,8 @@ const path = require('path'),
 const axios = require('axios');
 const { create } = require('xmlbuilder2');
 
+const cron = require('node-cron');
+
 const {custom} = require("@salesforce-ux/design-system/design-tokens/dist/bg-standard.common");
 
 
@@ -328,11 +330,19 @@ app.get('/query', (request, response) => {
 
           if(record.Client_HECM_Certificate_Issue_Date__c) {
             // w.writeCharacters(String.valueOf(DateTime.newInstance(d2.year(),d2.month(),d2.day()).format('MM-dd-yyyy')));
-            profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(record.Client_HECM_Certificate_Issue_Date__c).up();
+            var date_format = new Date(record.Client_HECM_Certificate_Issue_Date__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear();
+            profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(formatted_date).up();
           }
           if(record.Client_HECM_Certificate_Expiration_Date__c) {
             // w.writeCharacters(String.valueOf(DateTime.newInstance(d2.year(),d2.month(),d2.day()).format('MM-dd-yyyy')));
-            profile.ele('tns:Client_HECM_Certificate_Expiration_Date').txt(record.Client_HECM_Certificate_Expiration_Date__c).up();
+            var date_format = new Date(record.Client_HECM_Certificate_Expiration_Date__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear();
+            profile.ele('tns:Client_HECM_Certificate_Expiration_Date').txt(formatted_date).up();
           }
 
           if(record.Client_HECM_Certificate_ID__c) {
@@ -373,7 +383,12 @@ app.get('/query', (request, response) => {
           }
           if(record.Client_Sales_Contract_Signed__c) {
             // w.writeCharacters(String.valueOf(DateTime.newInstance(d4.year(),d4.month(),d4.day()).format('MM-dd-yyyy')));
-            profile.ele('tns:Client_Sales_Contract_Signed').txt(record.Client_Sales_Contract_Signed__c).up();
+
+            var date_format = new Date(record.Client_Sales_Contract_Signed__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear();
+            profile.ele('tns:Client_Sales_Contract_Signed').txt(formatted_date).up();
           }
           if(record.Client_Credit_Score__c) {
             profile.ele('tns:Client_Credit_Score').txt(record.Client_Credit_Score__c).up();
@@ -448,7 +463,7 @@ app.get('/query', (request, response) => {
         const  strFileEncode = Buffer.from(xml).toString('base64');
         const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
           '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postClientData><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
-          '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '2022' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
+          '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '28' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
           '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
         const subXML1 = '<ser:submissionData>';
         const subXML2 = '</ser:submissionData>';
@@ -474,6 +489,44 @@ app.get('/query', (request, response) => {
           console.log('### got res: ', res.data);
           let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
           console.log('### submission id: ' + submissionId);
+
+          let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
+            '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
+
+          let task = cron.schedule('* * * * *', () => {
+            axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
+              console.log('### submission id: ' + submissionId);
+              console.log('### aaaaaa: ' + submissionId);
+              // console.log(resStatus);
+
+              let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
+
+              console.log('### submissionStatus: ' + submissionStatus);
+              if(submissionStatus == 'DONE') {
+                conn.sobject("X9902__c").update({
+                  Id : request.query.q,
+                  ClientSubmissionStatus__c : submissionStatus
+                }, function(err, ret) {
+                  if (err || !ret.success) { return console.error(err, ret); }
+                  console.log('Updated Successfully : ' + ret.id);
+
+                });
+              } else if(submissionStatus.indexOf('ERROR') != -1){
+                console.log('### else submission status: ' + submissionStatus);
+                console.log('### else submission status: ' + submissionStatus);
+                conn.sobject("X9902__c").update({
+                  Id : request.query.q,
+                  ClientSubmissionStatus__c : resStatus.data
+                }, function(err, ret) {
+                  if (err || !ret.success) { return console.error(err, ret); }
+                  console.log('Updated Successfully : ' + ret.id);
+                  task.stop();
+                });
+              }
+
+            });
+          });
+
           conn.sobject("X9902__c").update({
             Id : request.query.q,
             ClientSubmissionID__c : submissionId
@@ -491,6 +544,11 @@ app.get('/query', (request, response) => {
     });
   });
 });
+
+
+
+
+
 
 app.get('/query-summary', (request, response) => {
   console.log('### query summary');
@@ -539,13 +597,13 @@ app.get('/query-summary', (request, response) => {
             'xsi:schemaLocation': 'http://gov.hud.arm/form_9902_databag_6_0 form_9902_databag_6_0.xsd',
             'xmlns:tns' : 'http://gov.hud.arm/form_9902_databag_6_0',
             'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
-          }).ele('tns:Form_9902');
+          });
 
 
         let tagMap = {};
         tagMap['Report_Period_Id'] = 'Report_Period_Id__c';
         tagMap['Ethnicity_Households_Counseling_Hispanic'] = 'Hispanic__c';
-        tagMap['Ethnicity_Households_Counseling_Non_Hispanic'] = 'non_Hispanic__c';
+        tagMap['Ethnicity_Households_Counseling_Non_Hispanic'] = 'Non_Hispanic__c';
         tagMap['Ethnicity_Households_Counseling_No_Response'] = 'No_Response__c';
         tagMap['Section_3_Total'] = 'Section_3_Total__c';
         tagMap['Race_Households_Counseling_American_Indian'] = 'American_Indian__c';
@@ -615,20 +673,29 @@ app.get('/query-summary', (request, response) => {
         tagMap['Section_10_Total'] = 'Section_10_Total__c';
 
 
+        // .ele('tns:Form_9902');
+        const top_data_node = root.ele('tns:Form_9902');
         console.log('### finish tag map: ' + JSON.stringify(tagMap));
+        console.log('###lst9902: ' + JSON.stringify(lst9902));
         for(const [key, value] of Object.entries(tagMap)) {
           for (let objAp of lst9902) {
             let actType = objAp.Activity_type_id__c.toString();
             if (rptIdFlg == true && key == 'Report_Period_Id') {
-              root.ele('tns:' + key).txt(objAp[tagMap[key]]).up();
+              top_data_node.ele('tns:' + key).txt(objAp[tagMap[key]]).up();
               rptIdFlg = false
             } else if (key != 'Report_Period_Id') {
-              root.ele('tns:' + key, {activity_type_id: actType}).txt(objAp[tagMap[key]]).up();
+              if(!objAp[tagMap[key]]) {
+                top_data_node.ele('tns:' + key, {activity_type_id: actType}).txt(0);
+              } else {
+                top_data_node.ele('tns:' + key, {activity_type_id: actType}).txt(objAp[tagMap[key]]);
+              }
+
             }
           }
         }
         console.log('### finish first set of params');
 
+        root.up();
         let gstagMap = {};
         let gsatagMap = {};
         let atagMap = {};
@@ -641,7 +708,7 @@ app.get('/query-summary', (request, response) => {
         gstagMap['Group_Session_Type'] = 'Group_Session_Type__c';
         gstagMap['Group_Session_Attribute_HUD_Grant'] = 'Group_Session_Attribute_HUD_Grant__c';
         gstagMap['Group_Session_Activity_Type'] = 'Group_Session_Activity_Type__c';
-        gsatagMap['Attendee_Id'] = 'Group_Session_Attendee_ID__c';
+        gsatagMap['Attendee_Id'] = 'Group_Session_Attendee_Id__c';
         gsatagMap['Attendee_Fee_Amount'] = 'Attendee_Fee_Amount__c';
         gsatagMap['Attendee_Referred_By'] = 'Attendee_Referred_By__c';
         gsatagMap['Attendee_FirstTime_Home_Buyer'] = 'Attendee_FirstTime_Home_Buyer__c';
@@ -691,6 +758,7 @@ app.get('/query-summary', (request, response) => {
                 GSMap[gs.Group_Session_Id__c] = gs;
               }
 
+
               console.log('### processing 1 end');
               const group_sessions = root.ele('tns:Group_Sessions');
 
@@ -699,12 +767,19 @@ app.get('/query-summary', (request, response) => {
                 const profile = group_sessions.ele('tns:Group_Session');
 
                 for(const [key, value] of Object.entries(gstagMap)) {
-                  // Date groupSessDt=objAP1.Group_Session_Date__c;
-                  if (key == 'Group_Session_Date') {
-                    profile.ele('tns:' + key).txt(objAP1[gstagMap[key]]).up();
-                  } else {
-                    // DateTime.newInstance(groupSessDt.year(),groupSessDt.month(),groupSessDt.day()).format('MM-dd-yyyy')
-                    profile.ele('tns:' + key).txt(objAP1[gstagMap[key]]).up();
+
+                  if(objAP1[gstagMap[key]]) {
+                    if (key == 'Group_Session_Date') {
+                      console.log('### session date: ' + objAP1[gstagMap[key]]);
+                      var date_format = new Date(objAP1[gstagMap[key]]);
+                      const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+                        + ('0' + date_format.getDate()).slice(-2) + '-'
+                        + date_format.getFullYear();
+
+                      profile.ele('tns:' + key).txt(formatted_date).up();
+                    } else {
+                      profile.ele('tns:' + key).txt(objAP1[gstagMap[key]].toString()).up();
+                    }
                   }
                 }
 
@@ -712,17 +787,17 @@ app.get('/query-summary', (request, response) => {
                 for(let objAP2 of gsalst9902){
                   if(objAP2.Group_Session_Id__c == objAP1.Group_Session_Id__c){
 
+
                     const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
-                    for(const [key, value] of Object.entries(gstagMap)){
-                      sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
-                      // if(key != 'Attendee_Address_2'){
-                      //   sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
-                      // }else{
-                      //   let address2 = objAP2[gsatagMap[key]];
-                      //   if(!address2){
-                      //     sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
-                      //   }
-                      // }
+                    for(const [key, value] of Object.entries(gsatagMap)){
+                      console.log('### objAP2: ' + JSON.stringify((objAP2)));
+                      if(objAP2[gsatagMap[key]]) {
+                        sessionAttendee.ele('tns:' + key).txt(objAP2[gsatagMap[key]]).up();
+                      } else if(key == 'Attendee_Fee_Amount') {
+                        sessionAttendee.ele('tns:' + key).txt('0').up();
+                      } else if(key == 'Attendee_Fee_Amount') {
+                        sessionAttendee.ele('tns:' + key).txt('0').up();
+                      }
                     }
                   }
                 }
@@ -734,15 +809,9 @@ app.get('/query-summary', (request, response) => {
               for(let objAp of alst9902) {
                 const attendee = attendees.ele('tns:Attendee');
                 for (const [key, value] of Object.entries(atagMap)) {
-                  attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
-                  // if(key != 'Attendee_Address_2'){
-                  //   sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
-                  // }else{
-                  //   let address2 = objAP2[gsatagMap[key]];
-                  //   if(!address2){
-                  //     sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
-                  //   }
-                  // }
+                  if(objAp[atagMap[key]]) {
+                    attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
+                  }
                 }
 
               }
@@ -756,7 +825,7 @@ app.get('/query-summary', (request, response) => {
               const  strFileEncode = Buffer.from(xml).toString('base64');
               const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
                 '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postForm9902Data><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
-                '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '2022' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
+                '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '28' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
                 '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
               const subXML1 = '<ser:submissionData>';
               const subXML2 = '</ser:submissionData>';
@@ -781,15 +850,53 @@ app.get('/query-summary', (request, response) => {
                 console.log('### called axios');
                 console.log('### got res: ', res.data);
                 let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
-                console.log('### submission id: ' + submissionId);
-                conn.sobject("X9902__c").update({
-                  Id : request.query.q,
-                  Summary9902SubmissionID__c : submissionId
-                }, function(err, ret) {
-                  if (err || !ret.success) { return console.error(err, ret); }
-                  console.log('Updated Successfully : ' + ret.id);
-                  response.json({ submissionId: submissionId, sentXml: xml });
-                });
+
+                  let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
+                    '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
+
+                  let task = cron.schedule('* * * * *', () => {
+                    axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
+                      console.log('### submission id: ' + submissionId);
+                      let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
+
+                      console.log('### submissionStatus: ' + submissionStatus);
+                      if(submissionStatus == 'DONE') {
+                        conn.sobject("X9902__c").update({
+                          Id : request.query.q,
+                          Summary9902SubmissionStatus__c : submissionStatus
+                        }, function(err, ret) {
+                          if (err || !ret.success) { return console.error(err, ret); }
+                          console.log('Updated Successfully : ' + ret.id);
+                          task.stop();
+                        });
+                      } else if(submissionStatus.indexOf('ERROR') != -1){
+                        console.log('### else submission status: ' + submissionStatus);
+                        conn.sobject("X9902__c").update({
+                          Id : request.query.q,
+                          Summary9902SubmissionStatus__c : resStatus.data
+                        }, function(err, ret) {
+                          if (err || !ret.success) { return console.error(err, ret); }
+                          console.log('Updated Successfully : ' + ret.id);
+                          task.stop();
+                        });
+                      }
+
+                    });
+                  });
+
+
+                  conn.sobject("X9902__c").update({
+                    Id : request.query.q,
+                    Summary9902SubmissionID__c : submissionId,
+                  }, function(err, ret) {
+                    if (err || !ret.success) { return console.error(err, ret); }
+                    console.log('Updated Successfully : ' + ret.id);
+                    response.json({ submissionId: submissionId, sentXml: xml });
+                  });
+
+
+
+
               }).catch(err => {
                 console.log('### err axios: ' + err);
 
