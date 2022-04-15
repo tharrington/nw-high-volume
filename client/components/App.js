@@ -34,15 +34,45 @@ export default class App extends React.Component {
     // Send SOQL query to server
     console.log('### data.query: ' + data.query);
     const queryUrl = '/query?q=' + encodeURI(data.query);
+    console.log('### queryUrl: ' + queryUrl);
     fetch(queryUrl, {
       headers: {
         Accept: 'application/json'
       },
       cache: 'no-store'
     }).then((response) => {
-      console.log('### response: ', response);
-      this.setState({ result : response.statusText });
 
+      response.json().then((json) => {
+        console.log(json);
+
+      });
+      this.setState({ result : response.statusText });
+    });
+  };
+
+
+  handleQueryExecutionSummary = (data) => {
+    // Send SOQL query to server
+    console.log('### execute summary data.query: ' + data.query);
+    const queryUrl = '/query-summary?q=' + encodeURI(data.query);
+    console.log('### queryUrl: ' + queryUrl);
+    fetch(queryUrl, {
+      headers: {
+        Accept: 'application/json'
+      },
+      cache: 'no-store'
+    }).then((response) => {
+
+      response.json().then((json) => {
+        console.log(json);
+      });
+      console.log('### resp');
+      console.log('### resp1: ', response);
+      // response.json().then((json) => {
+      //   console.log(json);
+      //
+      // });
+      // this.setState({ result : response.statusText });
     });
   };
 
@@ -54,7 +84,7 @@ export default class App extends React.Component {
           <LoginPanel />
         ) : (
           <div className="slds-m-around--xx-large">
-            <QueryForm onExecuteQuery={this.handleQueryExecution} />
+            <QueryForm onExecuteQuery={this.handleQueryExecution} onExecuteQuerySummary={this.handleQueryExecutionSummary} />
             {this.state.result ? <QueryResults result={this.state.result} /> : null}
           </div>
         )}

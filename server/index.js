@@ -17,12 +17,7 @@ if (!(process.env.loginUrl && process.env.consumerKey && process.env.consumerSec
 }
 
 // Instantiate Salesforce client with .env configuration
-const oauth2 = new jsforce.OAuth2({
-  loginUrl: process.env.loginUrl,
-  clientId: process.env.consumerKey,
-  clientSecret: process.env.consumerSecret,
-  redirectUri: process.env.callbackUrl
-});
+let oauth2;
 
 // Setup HTTP server
 const app = express();
@@ -67,6 +62,20 @@ function resumeSalesforceConnection(session) {
  * Login endpoint
  */
 app.get('/auth/login', (request, response) => {
+  if(!request.query.loginUrl ||  !request.query.consumerKey || !request.query.callbackUrl || !request.query.consumerSecret) {
+    response.status(500).send('Please enter all values before logging in.');
+    return;
+  }
+  console.log('### got query');
+  console.log('### query: ' + JSON.stringify(request.query));
+  oauth2 = new jsforce.OAuth2({
+    loginUrl: request.query.loginUrl,
+    clientId: request.query.consumerKey,
+    clientSecret: request.query.consumerSecret,
+    redirectUri: request.query.callbackUrl
+  });
+
+
   // Redirect to Salesforce login/authorization page
   response.redirect(oauth2.getAuthorizationUrl({ scope: 'full' }));
 });
@@ -146,6 +155,8 @@ app.get('/auth/whoami', (request, response) => {
   });
 });
 
+
+
 /**
  * Endpoint for performing a SOQL query on Salesforce
  */
@@ -155,21 +166,20 @@ app.get('/query', (request, response) => {
     return;
   }
 
-
   const query = 'select Id,Client_ID_Num__c,Client_Case_Num__c,Client_SSN1__c,Client_SSN2__c,Client_First_Name__c,Client_Last_Name__c,Client_Middle_Name__c,\n' +
-    '                                         Client_Street_Address_1__c,Client_Street_Address_2__c,Client_State__c,Client_Zip__c,Client_New_Street_Address_1__c,Client_New_Street_Address_2__c,\n' +
-    '                                         Client_New_City__c,Client_New_State__c,Client_New_Zip__c,Client_Phone_Num__c,Client_Mobile_Phone_Num__c,Client_Fax__c,Client_Email__c,Client_Family_Size__c,\n' +
-    '                                         Client_Gender__c,Client_Marital_Status__c,Client_Race_ID__c,Client_Ethnicity_ID__c,Client_Household_Gross_Monthly_Income__c,Client_Head_Of_Household_Type__c,\n' +
-    '                                         Client_Birth_DT__c,Client_Counselor_ID__c,Client_Counselor_HUD_Id__c,Client_Highest_Educ_Grade__c,Client_Farm_Worker__c,Client_Rural_Area__c,Client_Limited_English_Proficiency__c,\n' +
-    '                                         Client_Colonias_Resident__c,Client_HUD_Assistance__c,Client_Disabled__c,Client_Dependents_Num__c,Client_Intake_DT__c,Client_Counsel_Start_Session_DateTime__c,Client_Counsel_End_Session_DateTime__c,\n' +
-    '                                         Client_Language_Spoken__c,Client_Session_Duration__c,Client_Counseling_Type__c,Client_Counseling_Termination__c,Client_Counseling_Fee__c,Client_Attribute_HUD_Grant__c,Client_Grant_Amount_Used__c,\n' +
-    '                                         Client_HECM_Certificate__c,Client_HECM_Certificate_Issue_Date__c,Client_HECM_Certificate_Expiration_Date__c,Client_HECM_Certificate_ID__c,Client_Predatory_Lending__c,Client_Mortgage_Type__c,\n' +
-    '                                         Client_Mortgage_Type_After__c,Client_Finance_Type_Before__c,Client_Finance_Type_After__c,Client_FirstTime_Home_Buyer__c,Client_Discrimination_Victim__c,Client_Mortgage_Closing_Cost__c,\n' +
-    '                                         Client_Mortgage_Interest_Rate__c,Client_Referred_By__c,Client_Sales_Contract_Signed__c,Client_Credit_Score__c,Client_No_Credit_Score_Reason__c,Client_Credit_Score_Source__c,Client_Job_Duration__c,\n' +
-    '                                         Client_Household_Debt__c,Client_Mortgage_Deliquency__c,Client_Spouse_First_Name__c,Client_Spouse_Last_Name__c,Client_Spouse_Middle_Name__c,Client_Spouse_SSN__c,Client_Loan_Being_Reported__c,\n' +
-    '                                         Client_Second_Loan_Exists__c,Client_Intake_Loan_Type__c,Client_Intake_Loan_Type_Is_Hybrid_ARM__c,Client_Intake_Loan_Type_Is_Option_ARM__c,Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c,\n' +
-    '                                         Loan_Type_Is_Privately_Held__c,Client_Intake_Loan_Type_Is_Interest_Only__c,Client_Income_Level__c,Client_Purpose_Of_Visit__c,Client_Activity_Type__c,Client_City__c,\n' +
-    '                                         Loan_Type_Has_Interest_Rate_Reset__c,Client_Outcome__c,X9902ReportingQuarter__c from X9902_Client__c where X9902__c = \'' + request.query.q +'\'';
+    '                   Client_Street_Address_1__c,Client_Street_Address_2__c,Client_State__c,Client_Zip__c,Client_New_Street_Address_1__c,Client_New_Street_Address_2__c,\n' +
+    '                   Client_New_City__c,Client_New_State__c,Client_New_Zip__c,Client_Phone_Num__c,Client_Mobile_Phone_Num__c,Client_Fax__c,Client_Email__c,Client_Family_Size__c,\n' +
+    '                   Client_Gender__c,Client_Marital_Status__c,Client_Race_ID__c,Client_Ethnicity_ID__c,Client_Household_Gross_Monthly_Income__c,Client_Head_Of_Household_Type__c,\n' +
+    '                   Client_Birth_DT__c,Client_Counselor_ID__c,Client_Counselor_HUD_Id__c,Client_Highest_Educ_Grade__c,Client_Farm_Worker__c,Client_Rural_Area__c,Client_Limited_English_Proficiency__c,\n' +
+    '                   Client_Colonias_Resident__c,Client_HUD_Assistance__c,Client_Disabled__c,Client_Dependents_Num__c,Client_Intake_DT__c,Client_Counsel_Start_Session_DateTime__c,Client_Counsel_End_Session_DateTime__c,\n' +
+    '                   Client_Language_Spoken__c,Client_Session_Duration__c,Client_Counseling_Type__c,Client_Counseling_Termination__c,Client_Counseling_Fee__c,Client_Attribute_HUD_Grant__c,Client_Grant_Amount_Used__c,\n' +
+    '                   Client_HECM_Certificate__c,Client_HECM_Certificate_Issue_Date__c,Client_HECM_Certificate_Expiration_Date__c,Client_HECM_Certificate_ID__c,Client_Predatory_Lending__c,Client_Mortgage_Type__c,\n' +
+    '                   Client_Mortgage_Type_After__c,Client_Finance_Type_Before__c,Client_Finance_Type_After__c,Client_FirstTime_Home_Buyer__c,Client_Discrimination_Victim__c,Client_Mortgage_Closing_Cost__c,\n' +
+    '                   Client_Mortgage_Interest_Rate__c,Client_Referred_By__c,Client_Sales_Contract_Signed__c,Client_Credit_Score__c,Client_No_Credit_Score_Reason__c,Client_Credit_Score_Source__c,Client_Job_Duration__c,\n' +
+    '                   Client_Household_Debt__c,Client_Mortgage_Deliquency__c,Client_Spouse_First_Name__c,Client_Spouse_Last_Name__c,Client_Spouse_Middle_Name__c,Client_Spouse_SSN__c,Client_Loan_Being_Reported__c,\n' +
+    '                   Client_Second_Loan_Exists__c,Client_Intake_Loan_Type__c,Client_Intake_Loan_Type_Is_Hybrid_ARM__c,Client_Intake_Loan_Type_Is_Option_ARM__c,Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c,\n' +
+    '                   Loan_Type_Is_Privately_Held__c,Client_Intake_Loan_Type_Is_Interest_Only__c,Client_Income_Level__c,Client_Purpose_Of_Visit__c,Client_Activity_Type__c,Client_City__c,\n' +
+    '                   Loan_Type_Has_Interest_Rate_Reset__c,Client_Outcome__c,X9902ReportingQuarter__c from X9902_Client__c where X9902__c = \'' + request.query.q +'\'';
   console.log('### query: ' + query);
   if (!query) {
     response.status(400).send('Missing query parameter.');
@@ -194,8 +204,7 @@ app.get('/query', (request, response) => {
             'xsi:schemaLocation': 'http://gov.hud.arm/client_profile_databag_6_0 client_profile_databag_6_0.xsd',
             'xmlns:tns' : 'http://gov.hud.arm/client_profile_databag_6_0',
             'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
-          })
-            .ele('tns:ClientProfiles');
+          }).ele('tns:ClientProfiles');
 
         for(let record of result.records) {
           const profile = root.ele('tns:ClientProfile');
@@ -317,7 +326,6 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_HECM_Certificate').txt(record.Client_HECM_Certificate__c).up();
           }
 
-
           if(record.Client_HECM_Certificate_Issue_Date__c) {
             // w.writeCharacters(String.valueOf(DateTime.newInstance(d2.year(),d2.month(),d2.day()).format('MM-dd-yyyy')));
             profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(record.Client_HECM_Certificate_Issue_Date__c).up();
@@ -370,7 +378,6 @@ app.get('/query', (request, response) => {
           if(record.Client_Credit_Score__c) {
             profile.ele('tns:Client_Credit_Score').txt(record.Client_Credit_Score__c).up();
           }
-
           if(record.Client_No_Credit_Score_Reason__c) {
             profile.ele('tns:Client_No_Credit_Score_Reason').txt(record.Client_No_Credit_Score_Reason__c).up();
           }
@@ -473,11 +480,8 @@ app.get('/query', (request, response) => {
           }, function(err, ret) {
             if (err || !ret.success) { return console.error(err, ret); }
             console.log('Updated Successfully : ' + ret.id);
-            response.send('Submission id: ' + submissionId);
+            response.json({ submissionId: submissionId, sentXml: xml });
           });
-
-
-
         }).catch(err => {
           console.log('### err axios: ' + err);
 
@@ -488,7 +492,316 @@ app.get('/query', (request, response) => {
   });
 });
 
+app.get('/query-summary', (request, response) => {
+  console.log('### query summary');
+  const session = getSession(request, response);
+  if (session == null) {
+    return;
+  }
 
+  const query = 'select Id,Section_3_Total__c,Report_Period_Id__c,Activity_type_id__c,Hispanic__c,Non_Hispanic__c,No_Response__c,American_Indian__c,Asian__c,Black_African_American__c,Pacific_Islanders__c,\n' +
+    '    White__c,AMINDWHT__c,ASIANWHT__c,BLKWHT__c,AMRCINDBLK__c,OtherMLTRC__c,MultiRace_No_Response__c,Section_4_Total__c,Less30_AMI_Level__c,A50_79_AMI_Level__c,A30_49_AMI_Level__c,A80_100_AMI_Level__c,\n' +
+    '    Greater100_AMI_Level__c,AMI_No_Response__c,Section_5_Total__c,Household_Lives_In_Rural_Area__c,Household_Does_Not_Live_In_Rural_Area__c,Rural_Area_No_Response__c,Not_Limited_English_Proficient__c,\n' +
+    '    Is_Limited_English_Proficient__c,Section_6_Total__c,Limited_English_Proficient_No_Response__c,Section_7_Total__c,Fair_Housing_Workshop__c,Fin_Lit_Workshop__c,Other_Workshop__c,Pred_Lend_Workshop__c,\n' +
+    '    Rental_Workshop__c,Homeless_Prev_Workshop__c,Resolv_Prevent_Mortg_Delinq_Workshop__c,NonDelinqency_PostPurchase_Workshop__c,PrePurchase_HomeBuyer_Workshop__c,Section_8_Total__c,Homeless_Assistance_Counseling__c,\n' +
+    '    Rental_Topics_Counseling__c,PrePurchase_HomeBuying_Counseling__c,Fin_Management_Counseling__c,Reverse_Mortgage_Counseling__c,Resolv_Prevent_Mortg_Delinq_Counseling__c,Section_9_Total__c,One_On_One_And_Group__c,\n' +
+    '    Received_Info_Fair_Housing__c,Developed_Sustainable_Budget__c,Improved_Financial_Capacity__c,Gained_Access_Resources_Improve_Housing__c,Gained_Access_NonHousing_Resources__c,Homeless_Obtained_Housing__c,\n' +
+    '    Rec_Rental_Counseling_Avoided_Eviction__c,Rec_Rental_Counseling_Living_Conditions__c,PrePurchase_Counseling_Purchased_Housing__c,Mortgage_Counseling_Obtained_HECM__c,NonDel_PostPur_Coun_Imp_Cond_Afford__c,\n' +
+    '    Prevented_Resolved_Mortgage_Default__c,Section_10_Total__c,Completed_Disaster_Preparedness_Workshop__c,Disaster_Recover_Workshop__c,More_Than_one_Race__c,Forward_Mortgage_Delinquency_or_Default__c,\n' +
+    '    Reverse_Mortgage_Delinquency_or_Default__c,Disaster_Recovery_Assistance__c,Disaster_Preparedness_Assistance__c,Disaster_Recovery_Non_housing_Resources__c,Disaster_Recovery_Housing_Resources__c,\n' +
+    '    Emergency_Preparedness_Plan__c,Prevented_Forward_Mortgage_Default__c,Prevented_Reverse_Mortgage_Default__c,Forward_Mortgage_Mod_Improved_Financials__c,Forward_Mod_Improved_Financial_Capacity__c\n' +
+    '    from X9902Summary__c where X9902__c = \'' + request.query.q + '\' AND Element_Type__c = \'9902\' ';
+
+  console.log('### query: ' + query);
+
+  if (!query) {
+    response.status(400).send('Missing query parameter.');
+    return;
+  }
+  const conn = resumeSalesforceConnection(session);
+
+  conn.query('SELECT Name, EndpointURL__c, AgencyId__c, AgencyName__c, Username__c, Password__c, CMSPassword__c, VendorId__c FROM IntegrationSettings__c WHERE Name = \'HUD Settings\'', (error, customSetting) => {
+    conn.query(query, (error, result) => {
+      if (error) {
+        console.error('Salesforce data API error: ' + JSON.stringify(error));
+        response.status(500).json(error);
+        return;
+      } else {
+        console.log('### customSetting: ' + JSON.stringify(customSetting));
+        const settingVal = customSetting.records[0];
+        let authHeader = 'Basic ' + Buffer.from(settingVal.Username__c + ':' + settingVal.Password__c).toString('base64');
+        console.log('### authHeader: ' + authHeader);
+        let lst9902 = result.records;
+
+        let rptIdFlg = true;
+        let root = create({ version: '1.0', encoding: 'UTF-8' })
+          .ele('tns:SubmissionData', {
+            'xsi:schemaLocation': 'http://gov.hud.arm/form_9902_databag_6_0 form_9902_databag_6_0.xsd',
+            'xmlns:tns' : 'http://gov.hud.arm/form_9902_databag_6_0',
+            'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
+          }).ele('tns:Form_9902');
+
+
+        let tagMap = {};
+        tagMap['Report_Period_Id'] = 'Report_Period_Id__c';
+        tagMap['Ethnicity_Households_Counseling_Hispanic'] = 'Hispanic__c';
+        tagMap['Ethnicity_Households_Counseling_Non_Hispanic'] = 'non_Hispanic__c';
+        tagMap['Ethnicity_Households_Counseling_No_Response'] = 'No_Response__c';
+        tagMap['Section_3_Total'] = 'Section_3_Total__c';
+        tagMap['Race_Households_Counseling_American_Indian'] = 'American_Indian__c';
+        tagMap['Race_Households_Counseling_Asian'] = 'Asian__c';
+        tagMap['Race_Households_Counseling_Black_African_American'] = 'Black_African_American__c';
+        tagMap['Race_Households_Counseling_American_Indian'] = 'American_Indian__c';
+        tagMap['Race_Households_Counseling_Pacific_Islanders'] = 'Pacific_Islanders__c';
+        tagMap['Race_Households_Counseling_White'] = 'White__c';
+        tagMap['Race_Households_Counseling_More_Than_One_Race'] = 'More_Than_one_Race__c';
+        tagMap['Race_Households_Counseling_No_Response'] = 'MultiRace_No_Response__c';
+        tagMap['Section_4_Total'] = 'Section_4_Total__c';
+        tagMap['Less30_AMI_Level'] = 'Less30_AMI_Level__c';
+        tagMap['a30_49_AMI_Level'] = 'A30_49_AMI_Level__c';
+        tagMap['a50_79_AMI_Level'] = 'A50_79_AMI_Level__c';
+        tagMap['a80_100_AMI_Level'] = 'A80_100_AMI_Level__c';
+        tagMap['Greater100_AMI_Level'] = 'Greater100_AMI_Level__c';
+        tagMap['AMI_No_Response'] = 'AMI_No_Response__c';
+        tagMap['Section_5_Total'] = 'Section_5_Total__c';
+        tagMap['Lives_In_Rural_Area'] = 'Household_Lives_In_Rural_Area__c';
+        tagMap['Does_Not_Live_In_Rural_Area'] = 'Household_Does_Not_Live_In_Rural_Area__c';
+        tagMap['Rural_Area_No_Response'] = 'Rural_Area_No_Response__c';
+        tagMap['Section_6_Total'] = 'Section_6_Total__c';
+        tagMap['Limited_English_Proficient'] = 'Is_Limited_English_Proficient__c';
+        tagMap['Not_Limited_English_Proficient'] = 'Not_Limited_English_Proficient__c';
+        tagMap['Limited_English_Proficient_No_Response'] = 'Limited_English_Proficient_No_Response__c';
+        tagMap['Section_7_Total'] = 'Section_7_Total__c';
+        tagMap['Education_Compl_Fin_Lit_Workshop'] = 'Fin_Lit_Workshop__c';
+        tagMap['Education_Compl_Pred_Lend_Workshop'] = 'Pred_Lend_Workshop__c';
+        tagMap['Education_Compl_Fair_Housing_Workshop'] = 'Fair_Housing_Workshop__c';
+        tagMap['Education_Compl_Homeless_Prev_Workshop'] = 'Homeless_Prev_Workshop__c';
+        tagMap['Education_Compl_Rental_Workshop'] = 'Rental_Workshop__c';
+        tagMap['Education_Compl_PrePurchase_HomeBuyer_Workshop'] = 'PrePurchase_HomeBuyer_Workshop__c';
+        tagMap['Education_Compl_NonDelinqency_PostPurchase_Workshop'] = 'NonDelinqency_PostPurchase_Workshop__c';
+        tagMap['Education_Compl_Resolv_Prevent_Mortg_Delinq_Workshop'] = 'Resolv_Prevent_Mortg_Delinq_Workshop__c';
+        tagMap['Education_Compl_Disaster_Prepare_Workshop'] = 'Completed_Disaster_Preparedness_Workshop__c';
+        tagMap['Education_Compl_Disaster_Recovery_Workshop'] = 'Disaster_Recover_Workshop__c';
+        tagMap['Section_8_Total'] = 'Section_8_Total__c';
+        tagMap['One_Homeless_Assistance_Counseling'] = 'Homeless_Assistance_Counseling__c';
+        tagMap['One_Rental_Topics_Counseling'] = 'Rental_Topics_Counseling__c';
+        tagMap['One_PrePurchase_HomeBuying_Counseling'] = 'PrePurchase_HomeBuying_Counseling__c';
+        tagMap['One_Non_Delinq_Post_Purchase_Counseling'] = 'Fin_Management_Counseling__c';
+        tagMap['One_Reverse_Mortgage_Counseling'] = 'Reverse_Mortgage_Counseling__c';
+        tagMap['One_Resolv_Prevent_Fwd_Mortg_Delinq_Counseling'] = 'Forward_Mortgage_Delinquency_or_Default__c';
+        tagMap['One_Resolv_Prevent_Rev_Mortg_Delinq_Counseling'] = 'Reverse_Mortgage_Delinquency_or_Default__c';
+        tagMap['One_Disaster_Preparedness_Assistance_Counseling'] = 'Disaster_Preparedness_Assistance__c';
+        tagMap['One_Disaster_Recovery_Assistance_Counseling'] = 'Disaster_Recovery_Assistance__c';
+        tagMap['Section_9_Total'] = 'Section_9_Total__c';
+        tagMap['Outcome_One_On_One_And_Education'] = 'One_On_One_And_Group__c';
+        tagMap['Outcome_Received_Info_Fair_Housing'] = 'Received_Info_Fair_Housing__c';
+        tagMap['Outcome_Developed_Budget'] = 'Developed_Sustainable_Budget__c';
+        tagMap['Outcome_Improved_Financial_Capacity'] = 'Improved_Financial_Capacity__c';
+        tagMap['Outcome_Gained_Access_Resources_Improve_Housing'] = 'Gained_Access_Resources_Improve_Housing__c';
+        tagMap['Outcome_Gained_Access_NonHousing_Resources'] = 'Gained_Access_NonHousing_Resources__c';
+        tagMap['Outcome_Homeless_Obtained_Housing'] = 'Homeless_Obtained_Housing__c';
+        tagMap['Outcome_Gained_Access_Disaster_Recovery_NonHousing_Resources'] = 'Disaster_Recovery_Non_housing_Resources__c';
+        tagMap['Outcome_Obtained_Disaster_Recovery_Housing_Resources'] = 'Disaster_Recovery_Housing_Resources__c';
+        tagMap['Outcome_Developed_Emergency_Preparedness_Plan'] = 'Emergency_Preparedness_Plan__c';
+        tagMap['Outcome_Received_Rental_Counseling_Avoided_Eviction'] = 'Rec_Rental_Counseling_Avoided_Eviction__c';
+        tagMap['Outcome_Received_Rental_Counseling_Improved_Living_Conditions'] = 'Rec_Rental_Counseling_Living_Conditions__c';
+        tagMap['Outcome_Received_PrePurchase_Counseling_Purchased_Housing'] = 'PrePurchase_Counseling_Purchased_Housing__c';
+        tagMap['Outcome_Received_Reverse_Mortgage_Counseling_Obtained_HECM'] = 'Mortgage_Counseling_Obtained_HECM__c';
+        tagMap['Outcome_Received_NonDelinquency_PostPurchase_Counseling_Improve_Conditions_Affordability'] = 'NonDel_PostPur_Coun_Imp_Cond_Afford__c';
+        tagMap['Outcome_Prevented_Resolved_Forward_Mortgage_Default'] = 'Prevented_Forward_Mortgage_Default__c';
+        tagMap['Outcome_Prevented_Resolved_Reverse_Mortgage_Default'] = 'Prevented_Reverse_Mortgage_Default__c';
+        tagMap['Outcome_Received_Forward_Mortgage_Modification_Remain_Current_In_Modified_Mortgage'] = 'Forward_Mortgage_Mod_Improved_Financials__c';
+        tagMap['Outcome_Received_Forward_Mortgage_Modification_Improved_Financial_Capacity'] = 'Forward_Mod_Improved_Financial_Capacity__c';
+        tagMap['Section_10_Total'] = 'Section_10_Total__c';
+
+
+        console.log('### finish tag map: ' + JSON.stringify(tagMap));
+        for(const [key, value] of Object.entries(tagMap)) {
+          for (let objAp of lst9902) {
+            let actType = objAp.Activity_type_id__c.toString();
+            if (rptIdFlg == true && key == 'Report_Period_Id') {
+              root.ele('tns:' + key).txt(objAp[tagMap[key]]).up();
+              rptIdFlg = false
+            } else if (key != 'Report_Period_Id') {
+              root.ele('tns:' + key, {activity_type_id: actType}).txt(objAp[tagMap[key]]).up();
+            }
+          }
+        }
+        console.log('### finish first set of params');
+
+        let gstagMap = {};
+        let gsatagMap = {};
+        let atagMap = {};
+        gstagMap['Group_Session_Id'] = 'Group_Session_Id__c';
+        gstagMap['Group_Session_Counselor_Id'] = 'Group_Session_Counselor_Id__c';
+        gstagMap['Group_Session_Counselor_HUD_Id'] = 'Group_Session_Counselor_HUD_Id__c';
+        gstagMap['Group_Session_Title'] = 'Group_Session_Title__c';
+        gstagMap['Group_Session_Date'] = 'Group_Session_Date__c';
+        gstagMap['Group_Session_Duration'] = 'Group_Session_Duration__c';
+        gstagMap['Group_Session_Type'] = 'Group_Session_Type__c';
+        gstagMap['Group_Session_Attribute_HUD_Grant'] = 'Group_Session_Attribute_HUD_Grant__c';
+        gstagMap['Group_Session_Activity_Type'] = 'Group_Session_Activity_Type__c';
+        gsatagMap['Attendee_Id'] = 'Group_Session_Attendee_ID__c';
+        gsatagMap['Attendee_Fee_Amount'] = 'Attendee_Fee_Amount__c';
+        gsatagMap['Attendee_Referred_By'] = 'Attendee_Referred_By__c';
+        gsatagMap['Attendee_FirstTime_Home_Buyer'] = 'Attendee_FirstTime_Home_Buyer__c';
+        gsatagMap['Attendee_Income_Level'] = 'Group_Session_Attendee_Income_Level__c';
+        gsatagMap['Attendee_City'] = 'Group_Session_Attendee_City__c';
+        gsatagMap['Attendee_State'] = 'Group_Session_Attendee_State__c';
+        gsatagMap['Attendee_Zip_Code'] = 'Group_Session_Attendee_Zip_Code__c';
+        gsatagMap['Attendee_Rural_Area'] = 'Group_Session_Attendee_Rural_Area_Status__c';
+        gsatagMap['Attendee_Limited_English_Proficiency'] = 'Grp_Attendee_Limited_English_Proficiency__c';
+        atagMap['Attendee_Id'] = 'Attendee_ID__c';
+        atagMap['Attendee_Income_Level'] = 'Attendee_Income_Level__c';
+        atagMap['Attendee_City'] = 'Attendee_City__c';
+        atagMap['Attendee_State'] = 'Attendee_State__c';
+        atagMap['Attendee_Zip_Code'] = 'Attendee_Zip_Code__c';
+        atagMap['Attendee_Rural_Area'] = 'Attendee_Rural_Area__c';
+        atagMap['Attendee_Limited_English_Proficiency'] = 'Attendee_Limited_English_Proficiency__c';
+        atagMap['Attendee_Race_ID'] = 'Attendee_Race_ID__c';
+        atagMap['Attendee_Ethnicity_ID'] = 'Attendee_Ethnicity_ID__c';
+        console.log('### built tag map');
+
+        let gsalst9902 = [];
+        let gslst9902 = [];
+        let alst9902 = [];
+        let GSMap = {};
+        const groupSessionQuery = 'select Id,Group_Session_Id__c,Group_Session_Counselor_Id__c,Group_Session_Counselor_HUD_Id__c,Group_Session_Title__c,Group_Session_Date__c,\n' +
+          '  Group_Session_Duration__c,Group_Session_Type__c,Group_Session_Attribute_HUD_Grant__c,Group_Session_Activity_Type__c\n' +
+          '  from X9902Summary__c where X9902__c = \'' + request.query.q + '\'  AND Element_Type__c = \'Group Session\' AND Group_Session_Id__c != NULL';
+        const groupSessionAttendeeQuery = 'select Id,Group_Session_Id__c,Group_Session_Attendee_ID__c,Attendee_Fee_Amount__c,Attendee_Referred_By__c,Attendee_FirstTime_Home_Buyer__c,Group_Session_Attendee_Income_Level__c,\n' +
+          '  Group_Session_Attendee_Address_1__c,Group_Session_Attendee_Address_2__c,Group_Session_Attendee_City__c,Group_Session_Attendee_State__c,Group_Session_Attendee_Zip_Code__c,\n' +
+          '  Group_Session_Attendee_Rural_Area_Status__c,Grp_Attendee_Limited_English_Proficiency__c\n' +
+          '  from X9902Summary__c where X9902__c = \'' + request.query.q + '\' AND Element_Type__c = \'Group Session Attendee\' AND Group_Session_Id__c != NULL';
+        const attendeeQuery = 'select Id,Attendee_ID__c,Attendee_Fname__c,Attendee_Lname__c,Attendee_Mname__c,Attendee_Income_Level__c,Attendee_Address_1__c,Attendee_Address_2__c,\n' +
+          '  Attendee_City__c,Attendee_State__c,Attendee_Zip_Code__c,Attendee_Rural_Area__c,Attendee_Limited_English_Proficiency__c,Attendee_Race_ID__c,Attendee_Ethnicity_ID__c\n' +
+          '  from X9902Summary__c where X9902__c = \'' + request.query.q + '\' AND Element_Type__c = \'Attendee\'';
+        conn.query(groupSessionQuery, (error, result) => {
+          console.log('### got first results');
+          gslst9902 = result.records;
+          conn.query(groupSessionAttendeeQuery, (error, result) => {
+            console.log('### got second results');
+            gsalst9902 = result.records;
+            conn.query(attendeeQuery, (error, result) => {
+              console.log('### got third results');
+              alst9902 = result.records;
+
+              console.log('### processing 1');
+              for(let gs of gslst9902){
+                GSMap[gs.Group_Session_Id__c] = gs;
+              }
+
+              console.log('### processing 1 end');
+              const group_sessions = root.ele('tns:Group_Sessions');
+
+              for(const [sumKey, value] of Object.entries(GSMap)) {
+                let objAP1 = GSMap[sumKey];
+                const profile = group_sessions.ele('tns:Group_Session');
+
+                for(const [key, value] of Object.entries(gstagMap)) {
+                  // Date groupSessDt=objAP1.Group_Session_Date__c;
+                  if (key == 'Group_Session_Date') {
+                    profile.ele('tns:' + key).txt(objAP1[gstagMap[key]]).up();
+                  } else {
+                    // DateTime.newInstance(groupSessDt.year(),groupSessDt.month(),groupSessDt.day()).format('MM-dd-yyyy')
+                    profile.ele('tns:' + key).txt(objAP1[gstagMap[key]]).up();
+                  }
+                }
+
+                const sessionAttendees = profile.ele('tns:Group_Session_Attendees');
+                for(let objAP2 of gsalst9902){
+                  if(objAP2.Group_Session_Id__c == objAP1.Group_Session_Id__c){
+
+                    const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
+                    for(const [key, value] of Object.entries(gstagMap)){
+                      sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
+                      // if(key != 'Attendee_Address_2'){
+                      //   sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
+                      // }else{
+                      //   let address2 = objAP2[gsatagMap[key]];
+                      //   if(!address2){
+                      //     sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
+                      //   }
+                      // }
+                    }
+                  }
+                }
+              }
+
+              console.log('### processing 2');
+
+              const attendees = root.ele('tns:Attendees');
+              for(let objAp of alst9902) {
+                const attendee = attendees.ele('tns:Attendee');
+                for (const [key, value] of Object.entries(atagMap)) {
+                  attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
+                  // if(key != 'Attendee_Address_2'){
+                  //   sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
+                  // }else{
+                  //   let address2 = objAP2[gsatagMap[key]];
+                  //   if(!address2){
+                  //     sessionAttendee.ele('tns:' + key).txt(objAP2[gstagMap[key]]).up();
+                  //   }
+                  // }
+                }
+
+              }
+
+              console.log('### made it through processing');
+              root.up();
+              const xml = root.end({ prettyPrint: true });
+              console.log(xml);
+
+
+              const  strFileEncode = Buffer.from(xml).toString('base64');
+              const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
+                '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postForm9902Data><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
+                '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '2022' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
+                '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
+              const subXML1 = '<ser:submissionData>';
+              const subXML2 = '</ser:submissionData>';
+              const strEncodedSubxml = subXML1+strFileEncode+subXML2;
+              const strsubEncode = '<ser:submissionDataEncoding>TEXT/XML</ser:submissionDataEncoding>';
+              const strEnv = '</ser:postForm9902Data></soapenv:Body></soapenv:Envelope>';
+
+              const finalBody = soapXML+strsubEncode+strEncodedSubxml+strEnv;
+
+              const config = {
+                headers: {
+                  'Content-Type' : 'text/xml; charset=UTF-8',
+                  'Cache-Control' : 'no-cache',
+                  'Accept-Language': 'en-us',
+                  'Accept-Encoding': 'gzip, deflate, br',
+                  'Authorization' : authHeader
+                }
+              }
+
+              console.log('### about to post')
+              axios.post(settingVal.EndpointURL__c, finalBody, config).then(res => {
+                console.log('### called axios');
+                console.log('### got res: ', res.data);
+                let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
+                console.log('### submission id: ' + submissionId);
+                conn.sobject("X9902__c").update({
+                  Id : request.query.q,
+                  Summary9902SubmissionID__c : submissionId
+                }, function(err, ret) {
+                  if (err || !ret.success) { return console.error(err, ret); }
+                  console.log('Updated Successfully : ' + ret.id);
+                  response.json({ submissionId: submissionId, sentXml: xml });
+                });
+              }).catch(err => {
+                console.log('### err axios: ' + err);
+
+              });
+            });
+          });
+        });
+      }
+    });
+  });
+});
 
 app.listen(app.get('port'), () => {
+  console.log('### running on port: ' + app.get('port'));
 });

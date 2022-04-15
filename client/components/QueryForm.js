@@ -1,6 +1,4 @@
 import React from 'react';
-var builder = require('xmlbuilder');
-var doc = builder.create('root');
 
 
 export default class QueryForm extends React.Component {
@@ -16,6 +14,16 @@ export default class QueryForm extends React.Component {
       return;
     }
     this.props.onExecuteQuery({ query });
+  };
+
+  handleSubmitSummary = (e) => {
+    e.preventDefault();
+    const query = this.state.query.trim();
+    console.log('### query: ' + query);
+    if (!query) {
+      return;
+    }
+    this.props.onExecuteQuerySummary({ query });
   };
 
   handleQueryChange = (e) => {
@@ -39,11 +47,23 @@ export default class QueryForm extends React.Component {
 
         <div className="slds-form-element slds-clearfix">
           <div className="slds-float--right">
-            <button className="slds-button slds-button--brand" type="submit" disabled={!this.state.query.trim()}>
+            <button className="slds-button slds-button--brand" onClick={this.handleSubmit} disabled={!this.state.query.trim()}>
               <svg aria-hidden="true" className="slds-button__icon--stateful slds-button__icon--left">
                 <use xlinkHref="/assets/icons/utility-sprite/svg/symbols.svg#check"></use>
               </svg>
-              Execute
+              Submit Client Profiles
+            </button>
+          </div>
+        </div>
+
+        <br/>
+        <div className="slds-form-element slds-clearfix">
+          <div className="slds-float--right">
+            <button className="slds-button slds-button--brand" onClick={this.handleSubmitSummary} disabled={!this.state.query.trim()}>
+              <svg aria-hidden="true" className="slds-button__icon--stateful slds-button__icon--left">
+                <use xlinkHref="/assets/icons/utility-sprite/svg/symbols.svg#check"></use>
+              </svg>
+              Submit Client Summary
             </button>
           </div>
         </div>
