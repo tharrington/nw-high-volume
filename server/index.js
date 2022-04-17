@@ -206,10 +206,10 @@ app.get('/query', (request, response) => {
             'xsi:schemaLocation': 'http://gov.hud.arm/client_profile_databag_6_0 client_profile_databag_6_0.xsd',
             'xmlns:tns' : 'http://gov.hud.arm/client_profile_databag_6_0',
             'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
-          }).ele('tns:ClientProfiles');
+          }).ele('tns:Client_Profiles');
 
         for(let record of result.records) {
-          const profile = root.ele('tns:ClientProfile');
+          const profile = root.ele('tns:Client_Profile');
           if(record.Client_ID_Num__c) {
             profile.ele('tns:Client_ID_Num').txt(record.Client_ID_Num__c).up();
           }
@@ -258,10 +258,10 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_Head_Of_Household_Type').txt(record.Client_Head_Of_Household_Type__c).up();
           }
           if(record.Client_Counselor_ID__c) {
-            profile.ele('tns:Client_Counselor_ID__c').txt(record.Client_Counselor_ID__c).up();
+            profile.ele('tns:Client_Counselor_ID').txt(record.Client_Counselor_ID__c).up();
           }
-          if(record.Client_Counselor_ID__c) {
-            profile.ele('tns:Client_Counselor_HUD_Id').txt(record.Client_Counselor_ID__c).up();
+          if(record.Client_Counselor_HUD_Id__c) {
+            profile.ele('tns:Client_Counselor_HUD_Id').txt(record.Client_Counselor_HUD_Id__c).up();
           }
           if(record.Client_Highest_Educ_Grade__c) {
             profile.ele('tns:Client_Highest_Educ_Grade').txt(record.Client_Highest_Educ_Grade__c).up();
@@ -287,20 +287,35 @@ app.get('/query', (request, response) => {
           }
           if(record.Client_Dependents_Num__c) {
             profile.ele('tns:Client_Dependents_Num').txt(record.Client_Dependents_Num__c).up();
+          }else {
+            profile.ele('tns:Client_Dependents_Num').txt(0).up();
           }
 
           /* DATE TIME MAY BE AN ISSUE!!!! */
           if(record.Client_Intake_DT__c) {
             //w.writeCharacters(String.valueOf(DateTime.newInstance(d5.year(),d5.month(),d5.day()).format('MM-dd-yyyy')));
-            profile.ele('tns:Client_Intake_DT').txt(record.Client_Intake_DT__c).up();
+            var date_format = new Date(record.Client_Intake_DT__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear();
+            profile.ele('tns:Client_Intake_DT').txt(formatted_date).up();
           }
           if(record.Client_Counsel_Start_Session_DateTime__c) {
             //w.writeCharacters(String.valueOf(d.format('MM-dd-yyyy hh:mm')));
-            profile.ele('tns:Client_Counsel_Start_Session_DateTime').txt(record.Client_Counsel_Start_Session_DateTime__c).up();
+            var date_format = new Date(record.Client_Counsel_Start_Session_DateTime__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear() + ' 12:00';
+            profile.ele('tns:Client_Counsel_Start_Session_DateTime').txt(formatted_date).up();
           }
           if(record.Client_Counsel_End_Session_DateTime__c) {
             //w.writeCharacters(String.valueOf(d.format('MM-dd-yyyy hh:mm')));
-            profile.ele('tns:Client_Counsel_End_Session_DateTime').txt(record.Client_Counsel_End_Session_DateTime__c).up();
+            var date_format = new Date(record.Client_Counsel_End_Session_DateTime__c);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear() + ' 12:00';
+
+            profile.ele('tns:Client_Counsel_End_Session_DateTime').txt(formatted_date).up();
           }
 
           if(record.Client_Language_Spoken__c) {
@@ -308,6 +323,8 @@ app.get('/query', (request, response) => {
           }
           if(record.Client_Session_Duration__c) {
             profile.ele('tns:Client_Session_Duration').txt(record.Client_Session_Duration__c).up();
+          } else {
+            profile.ele('tns:Client_Session_Duration').txt(0).up();
           }
           if(record.Client_Counseling_Type__c) {
             profile.ele('tns:Client_Counseling_Type').txt(record.Client_Counseling_Type__c).up();
@@ -317,6 +334,8 @@ app.get('/query', (request, response) => {
           }
           if(record.Client_Counseling_Fee__c) {
             profile.ele('tns:Client_Counseling_Fee').txt(record.Client_Counseling_Fee__c).up();
+          } else {
+            profile.ele('tns:Client_Counseling_Fee').txt(0).up();
           }
           if(record.Client_Attribute_HUD_Grant__c) {
             profile.ele('tns:Client_Attribute_HUD_Grant').txt(record.Client_Attribute_HUD_Grant__c).up();
@@ -401,9 +420,13 @@ app.get('/query', (request, response) => {
           }
           if(record.Client_Job_Duration__c) {
             profile.ele('tns:Client_Job_Duration').txt(record.Client_Job_Duration__c).up();
+          } else {
+            profile.ele('tns:Client_Job_Duration').txt(0).up();
           }
           if(record.Client_Household_Debt__c) {
             profile.ele('tns:Client_Household_Debt').txt(record.Client_Household_Debt__c).up();
+          } else {
+            profile.ele('tns:Client_Household_Debt').txt(0).up();
           }
           if(record.Client_Mortgage_Deliquency__c) {
             profile.ele('tns:Client_Mortgage_Deliquency').txt(record.Client_Mortgage_Deliquency__c).up();

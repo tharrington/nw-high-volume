@@ -3,7 +3,8 @@ import React from 'react';
 
 export default class QueryForm extends React.Component {
   state = {
-    query: 'a28e0000003fNVaAAM'
+    //query: 'a28e0000003fNVaAAM'
+    query: ''
   };
 
   handleSubmit = (e) => {
