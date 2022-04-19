@@ -285,10 +285,8 @@ app.get('/query', (request, response) => {
           if(record.Client_Disabled__c) {
             profile.ele('tns:Client_Disabled').txt(record.Client_Disabled__c).up();
           }
-          if(record.Client_Dependents_Num__c) {
+          if(record.Client_Dependents_Num__c !== null) {
             profile.ele('tns:Client_Dependents_Num').txt(record.Client_Dependents_Num__c).up();
-          }else {
-            profile.ele('tns:Client_Dependents_Num').txt(0).up();
           }
 
           /* DATE TIME MAY BE AN ISSUE!!!! */
@@ -321,22 +319,20 @@ app.get('/query', (request, response) => {
           if(record.Client_Language_Spoken__c) {
             profile.ele('tns:Client_Language_Spoken').txt(record.Client_Language_Spoken__c).up();
           }
-          if(record.Client_Session_Duration__c) {
+          if(record.Client_Session_Duration__c !== null) {
             profile.ele('tns:Client_Session_Duration').txt(record.Client_Session_Duration__c).up();
-          } else {
-            profile.ele('tns:Client_Session_Duration').txt(0).up();
           }
+
           if(record.Client_Counseling_Type__c) {
             profile.ele('tns:Client_Counseling_Type').txt(record.Client_Counseling_Type__c).up();
           }
           if(record.Client_Counseling_Termination__c) {
             profile.ele('tns:Client_Counseling_Termination').txt(record.Client_Counseling_Termination__c).up();
           }
-          if(record.Client_Counseling_Fee__c) {
+          if(record.Client_Counseling_Fee__c !== null) {
             profile.ele('tns:Client_Counseling_Fee').txt(record.Client_Counseling_Fee__c).up();
-          } else {
-            profile.ele('tns:Client_Counseling_Fee').txt(0).up();
           }
+
           if(record.Client_Attribute_HUD_Grant__c) {
             profile.ele('tns:Client_Attribute_HUD_Grant').txt(record.Client_Attribute_HUD_Grant__c).up();
           }
@@ -348,7 +344,6 @@ app.get('/query', (request, response) => {
           }
 
           if(record.Client_HECM_Certificate_Issue_Date__c) {
-            // w.writeCharacters(String.valueOf(DateTime.newInstance(d2.year(),d2.month(),d2.day()).format('MM-dd-yyyy')));
             var date_format = new Date(record.Client_HECM_Certificate_Issue_Date__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -356,7 +351,6 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(formatted_date).up();
           }
           if(record.Client_HECM_Certificate_Expiration_Date__c) {
-            // w.writeCharacters(String.valueOf(DateTime.newInstance(d2.year(),d2.month(),d2.day()).format('MM-dd-yyyy')));
             var date_format = new Date(record.Client_HECM_Certificate_Expiration_Date__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -401,8 +395,6 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_Referred_By').txt(record.Client_Referred_By__c).up();
           }
           if(record.Client_Sales_Contract_Signed__c) {
-            // w.writeCharacters(String.valueOf(DateTime.newInstance(d4.year(),d4.month(),d4.day()).format('MM-dd-yyyy')));
-
             var date_format = new Date(record.Client_Sales_Contract_Signed__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -418,16 +410,14 @@ app.get('/query', (request, response) => {
           if(record.Client_Credit_Score_Source__c) {
             profile.ele('tns:Client_Credit_Score_Source').txt(record.Client_Credit_Score_Source__c).up();
           }
-          if(record.Client_Job_Duration__c) {
+          if(record.Client_Job_Duration__c !== null) {
             profile.ele('tns:Client_Job_Duration').txt(record.Client_Job_Duration__c).up();
-          } else {
-            profile.ele('tns:Client_Job_Duration').txt(0).up();
           }
-          if(record.Client_Household_Debt__c) {
+
+          if(record.Client_Household_Debt__c  !== null) {
             profile.ele('tns:Client_Household_Debt').txt(record.Client_Household_Debt__c).up();
-          } else {
-            profile.ele('tns:Client_Household_Debt').txt(0).up();
           }
+
           if(record.Client_Mortgage_Deliquency__c) {
             profile.ele('tns:Client_Mortgage_Deliquency').txt(record.Client_Mortgage_Deliquency__c).up();
           }
