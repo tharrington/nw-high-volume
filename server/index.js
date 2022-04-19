@@ -79,7 +79,7 @@ app.get('/auth/login', (request, response) => {
 
 
   // Redirect to Salesforce login/authorization page
-  response.redirect(oauth2.getAuthorizationUrl({ scope: 'full' }));
+  response.redirect(oauth2.getAuthorizationUrl({ scope: 'api' }));
 });
 
 /**
