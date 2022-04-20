@@ -32,8 +32,8 @@ export default class App extends React.Component {
 
   handleQueryExecution = (data) => {
     // Send SOQL query to server
-    console.log('### data.query: ' + data.query);
-    const queryUrl = '/query?q=' + encodeURI(data.query);
+    console.log('### data.query: ' + JSON.stringify(data));
+    const queryUrl = '/query?q=' + encodeURI(data.query) + '&password=' + encodeURI(data.password) + '&username=' + encodeURI(data.username)+ '&agencyid=' + encodeURI(data.agencyid);
     console.log('### queryUrl: ' + queryUrl);
     fetch(queryUrl, {
       headers: {
@@ -54,7 +54,7 @@ export default class App extends React.Component {
   handleQueryExecutionSummary = (data) => {
     // Send SOQL query to server
     console.log('### execute summary data.query: ' + data.query);
-    const queryUrl = '/query-summary?q=' + encodeURI(data.query);
+    const queryUrl = '/query-summary?q=' + encodeURI(data.query) + '&password=' + encodeURI(data.password) + '&username=' + encodeURI(data.username)+ '&agencyid=' + encodeURI(data.agencyid);
     console.log('### queryUrl: ' + queryUrl);
     fetch(queryUrl, {
       headers: {
