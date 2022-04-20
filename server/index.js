@@ -888,6 +888,7 @@ app.get('/query-summary', (request, response) => {
 
                     console.log('### submissionStatus: ' + submissionStatus);
                     if(submissionStatus == 'DONE') {
+
                       conn.sobject("NWSHOP__X9902__c").update({
                         Id : request.query.q,
                         NWSHOP__Summary9902SubmissionStatus__c : submissionStatus
