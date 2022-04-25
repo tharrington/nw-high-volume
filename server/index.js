@@ -158,7 +158,6 @@ app.get('/auth/whoami', (request, response) => {
 });
 
 
-
 /**
  * Endpoint for performing a SOQL query on Salesforce
  */
@@ -302,9 +301,9 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_Dependents_Num').txt(record.NWSHOP__Client_Dependents_Num__c).up();
           }
 
-          /* DATE TIME MAY BE AN ISSUE!!!! */
+
           if(record.NWSHOP__Client_Intake_DT__c) {
-            //w.writeCharacters(String.valueOf(DateTime.newInstance(d5.year(),d5.month(),d5.day()).format('MM-dd-yyyy')));
+
             var date_format = new Date(record.NWSHOP__Client_Intake_DT__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -312,7 +311,7 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_Intake_DT').txt(formatted_date).up();
           }
           if(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c) {
-            //w.writeCharacters(String.valueOf(d.format('MM-dd-yyyy hh:mm')));
+
             var date_format = new Date(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -320,7 +319,7 @@ app.get('/query', (request, response) => {
             profile.ele('tns:Client_Counsel_Start_Session_DateTime').txt(formatted_date).up();
           }
           if(record.NWSHOP__Client_Counsel_End_Session_DateTime__c) {
-            //w.writeCharacters(String.valueOf(d.format('MM-dd-yyyy hh:mm')));
+
             var date_format = new Date(record.NWSHOP__Client_Counsel_End_Session_DateTime__c);
             const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
               + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -535,7 +534,7 @@ app.get('/query', (request, response) => {
                 }, function(err, ret) {
                   if (err || !ret.success) { return console.error(err, ret); }
                   console.log('Updated Successfully : ' + ret.id);
-
+                  task.stop();
                 });
               } else if(submissionStatus.indexOf('ERROR') != -1){
                 console.log('### else submission status: ' + submissionStatus);
@@ -576,7 +575,25 @@ app.get('/query', (request, response) => {
 
 
 
-app.get('/query-summary', (request, response) => {
+
+
+
+
+
+
+
+
+
+
+function doMoreQuery(nextRecordsUrl) {
+  let promise = new Promise((resolve, reject) => {
+    conn.queryMore(nextRecordsUrl, (error, result) => {
+      resolve(result);
+    });
+  });
+}
+
+const doSummaryQuery = async(request, response) => {
   console.log('### query summary');
   const session = getSession(request, response);
   if (session == null) {
@@ -622,11 +639,8 @@ app.get('/query-summary', (request, response) => {
       response.status(500).json(error);
       return;
     } else {
-
       let authHeader = 'Basic ' + Buffer.from(settingVal.Username__c + ':' + settingVal.Password__c).toString('base64');
-      console.log('### authHeader: ' + authHeader);
       let lst9902 = result.records;
-
       let rptIdFlg = true;
       let root = create({ version: '1.0', encoding: 'UTF-8' })
         .ele('tns:SubmissionData', {
@@ -761,7 +775,6 @@ app.get('/query-summary', (request, response) => {
       atagMap['Attendee_Limited_English_Proficiency'] = 'NWSHOP__Attendee_Limited_English_Proficiency__c';
       atagMap['Attendee_Race_ID'] = 'NWSHOP__Attendee_Race_ID__c';
       atagMap['Attendee_Ethnicity_ID'] = 'NWSHOP__Attendee_Ethnicity_ID__c';
-      console.log('### built tag map');
 
       let gsalst9902 = [];
       let gslst9902 = [];
@@ -777,19 +790,22 @@ app.get('/query-summary', (request, response) => {
       const attendeeQuery = 'select Id, NWSHOP__Attendee_ID__c, NWSHOP__Attendee_Fname__c, NWSHOP__Attendee_Lname__c, NWSHOP__Attendee_Mname__c, NWSHOP__Attendee_Income_Level__c, NWSHOP__Attendee_Address_1__c, NWSHOP__Attendee_Address_2__c,\n' +
         '  NWSHOP__Attendee_City__c, NWSHOP__Attendee_State__c, NWSHOP__Attendee_Zip_Code__c, NWSHOP__Attendee_Rural_Area__c, NWSHOP__Attendee_Limited_English_Proficiency__c, NWSHOP__Attendee_Race_ID__c, NWSHOP__Attendee_Ethnicity_ID__c\n' +
         '  from NWSHOP__X9902Summary__c where NWSHOP__X9902__c = \'' + request.query.q + '\' AND NWSHOP__Element_Type__c = \'Attendee\'';
+
+
       conn.query(groupSessionQuery, (error, result) => {
         gslst9902 = result.records;
         conn.query(groupSessionAttendeeQuery, (error, result) => {
           gsalst9902 = result.records;
+          console.log('### groupSessionAttendeeQuery result: ' + result.records.length);
           conn.query(attendeeQuery, (error, result) => {
             alst9902 = result.records;
+            console.log('### attendeeQuery result: ' + result.records.length);
 
             for(let gs of gslst9902){
               GSMap[gs.Group_Session_Id__c] = gs;
             }
 
 
-            console.log('### processing 1 end');
             const group_sessions = root.ele('tns:Group_Sessions');
 
             for(const [sumKey, value] of Object.entries(GSMap)) {
@@ -800,7 +816,6 @@ app.get('/query-summary', (request, response) => {
 
                 if(objAP1[gstagMap[key]]) {
                   if (key == 'Group_Session_Date') {
-                    console.log('### session date: ' + objAP1[gstagMap[key]]);
                     var date_format = new Date(objAP1[gstagMap[key]]);
                     const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
                       + ('0' + date_format.getDate()).slice(-2) + '-'
@@ -820,7 +835,6 @@ app.get('/query-summary', (request, response) => {
 
                   const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
                   for(const [key, value] of Object.entries(gsatagMap)){
-                    console.log('### objAP2: ' + JSON.stringify((objAP2)));
                     if(objAP2[gsatagMap[key]]) {
                       sessionAttendee.ele('tns:' + key).txt(objAP2[gsatagMap[key]]).up();
                     } else if(key == 'Attendee_Fee_Amount') {
@@ -847,8 +861,6 @@ app.get('/query-summary', (request, response) => {
 
             root.up();
             const xml = root.end({ prettyPrint: true });
-            console.log(xml);
-
 
             const  strFileEncode = Buffer.from(xml).toString('base64');
             const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
@@ -874,53 +886,49 @@ app.get('/query-summary', (request, response) => {
             }
 
             axios.post(settingVal.EndpointURL__c, finalBody, config).then(res => {
-              console.log('### called axios');
-              console.log('### got res: ', res.data);
               let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
 
-                let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
-                  '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
+              let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
+                '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
 
-                let task = cron.schedule('* * * * *', () => {
-                  axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
-                    console.log('### submission id: ' + submissionId);
-                    let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
+              let task = cron.schedule('* * * * *', () => {
+                axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
+                  let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
 
-                    console.log('### submissionStatus: ' + submissionStatus);
-                    if(submissionStatus == 'DONE') {
+                  if(submissionStatus == 'DONE') {
 
-                      conn.sobject("NWSHOP__X9902__c").update({
-                        Id : request.query.q,
-                        NWSHOP__Summary9902SubmissionStatus__c : submissionStatus
-                      }, function(err, ret) {
-                        if (err || !ret.success) { return console.error(err, ret); }
-                        console.log('Updated Successfully : ' + ret.id);
-                        task.stop();
-                      });
-                    } else if(submissionStatus.indexOf('ERROR') != -1){
-                      console.log('### else submission status: ' + submissionStatus);
-                      conn.sobject("NWSHOP__X9902__c").update({
-                        Id : request.query.q,
-                        NWSHOP__Summary9902SubmissionStatus__c : resStatus.data
-                      }, function(err, ret) {
-                        if (err || !ret.success) { return console.error(err, ret); }
-                        console.log('Updated Successfully : ' + ret.id);
-                        task.stop();
-                      });
-                    }
+                    conn.sobject("NWSHOP__X9902__c").update({
+                      Id : request.query.q,
+                      NWSHOP__Summary9902SubmissionStatus__c : submissionStatus
+                    }, function(err, ret) {
+                      if (err || !ret.success) { return console.error(err, ret); }
+                      console.log('Updated Successfully : ' + ret.id);
+                      task.stop();
+                    });
+                  } else if(submissionStatus.indexOf('ERROR') != -1){
 
-                  });
+                    conn.sobject("NWSHOP__X9902__c").update({
+                      Id : request.query.q,
+                      NWSHOP__Summary9902SubmissionStatus__c : resStatus.data
+                    }, function(err, ret) {
+                      if (err || !ret.success) { return console.error(err, ret); }
+                      console.log('Updated Successfully : ' + ret.id);
+                      task.stop();
+                    });
+                  }
+
                 });
+              });
 
 
-                conn.sobject("NWSHOP__X9902__c").update({
-                  Id : request.query.q,
-                  NWSHOP__Summary9902SubmissionID__c : submissionId,
-                }, function(err, ret) {
-                  if (err || !ret.success) { return console.error(err, ret); }
-                  console.log('Updated Successfully : ' + ret.id);
-                  response.json({ submissionId: submissionId, sentXml: xml });
-                });
+              conn.sobject("NWSHOP__X9902__c").update({
+                Id : request.query.q,
+                NWSHOP__Summary9902SubmissionID__c : submissionId,
+              }, function(err, ret) {
+                if (err || !ret.success) { return console.error(err, ret); }
+                console.log('Updated Successfully : ' + ret.id);
+                response.json({ submissionId: submissionId, sentXml: xml });
+              });
 
 
 
@@ -934,7 +942,11 @@ app.get('/query-summary', (request, response) => {
       });
     }
   });
-});
+}
+
+
+app.get('/query-summary', doSummaryQuery);
+
 
 app.listen(app.get('port'), () => {
   console.log('### running on port: ' + app.get('port'));
