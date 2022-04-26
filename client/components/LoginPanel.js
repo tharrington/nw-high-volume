@@ -5,13 +5,13 @@ export default class LoginPanel extends React.Component {
 
     callbackUrl: 'https://nw-high-volume-submission.herokuapp.com/auth/callback',
     // callbackUrl: 'http://localhost:8080/auth/callback',
-    loginUrl: 'https://testnwctrail1.my.salesforce.com',
-    consumerKey: '3MVG9cHH2bfKACZbf8KRjt_P6k_6SMMJAzsgESL9Vs4JEp.ntvIU7iGbkHU.DO67JRxgzylpoJtm2xzkYWzb0',
-    consumerSecret: '3C3404778B8AA888C25BDD1EED8AA82E59120034B0B2D7455354D023BB4C5D0C'
+    // loginUrl: 'https://testnwctrail1.my.salesforce.com',
+    // consumerKey: '3MVG9cHH2bfKACZbf8KRjt_P6k_6SMMJAzsgESL9Vs4JEp.ntvIU7iGbkHU.DO67JRxgzylpoJtm2xzkYWzb0',
+    // consumerSecret: '3C3404778B8AA888C25BDD1EED8AA82E59120034B0B2D7455354D023BB4C5D0C'
     // consumerhttps://nwdev--nwcfeature.my.salesforce.comSecret: '3521049697DC9C55BD7B54FBE84AFA927835A874C27476C199FAF8C2E7780FF7',
-    // loginUrl: '',
-    // consumerKey: '',
-    // consumerSecret: '',
+    loginUrl: '',
+    consumerKey: '',
+    consumerSecret: '',
   };
 
   login = (e) => {

@@ -3,10 +3,14 @@ import React from 'react';
 
 export default class QueryForm extends React.Component {
   state = {
-    query: 'a2B5e000000FkkSEAS',
-    username: 'MX2310',
-    password: '8cs!Harm',
-    agencyid: '82310'
+    // query: 'a2B5e000000FkkSEAS',
+    // username: 'MX2310',
+    // password: '8cs!Harm',
+    // agencyid: '82310'
+    query: '',
+    username: '',
+    password: '',
+    agencyid: ''
   };
 
   handleSubmit = (e) => {
