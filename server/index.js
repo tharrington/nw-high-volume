@@ -3,6 +3,8 @@ const path = require('path'),
   express = require('express'),
   session = require('express-session'),
   jsforce = require('jsforce');
+const yields = require('express-yields');
+
 const axios = require('axios');
 const { create } = require('xmlbuilder2');
 
@@ -585,21 +587,399 @@ app.get('/query', (request, response) => {
 
 
 
-function doMoreQuery(nextRecordsUrl) {
-  let promise = new Promise((resolve, reject) => {
+function doMoreQuery(conn, nextRecordsUrl) {
+  return new Promise((resolve, reject) => {
+    console.log('### doing more query: ' + nextRecordsUrl);
     conn.queryMore(nextRecordsUrl, (error, result) => {
+      console.log('#### error');
+      console.log(error);
       resolve(result);
     });
   });
 }
 
-const doSummaryQuery = async(request, response) => {
+
+function doQuery(query, conn) {
+  return new Promise((resolve, reject) => {
+    conn.query(query, (err, data) => {
+      if (err) return reject(err);
+      resolve(data);
+    });
+  });
+}
+
+const doQuerySummary = async (session, settingVal, query, recordId) => {
+  const conn = resumeSalesforceConnection(session);
+
+  const result = await doQuery(query, conn);
+  let error;
+  if (error) {
+    console.error('Salesforce data API error: ' + JSON.stringify(error));
+    return;
+  } else {
+    let authHeader = 'Basic ' + Buffer.from(settingVal.Username__c + ':' + settingVal.Password__c).toString('base64');
+    console.log('### result finished');
+    let lst9902 = result.records;
+    let rptIdFlg = true;
+    let root = create({ version: '1.0', encoding: 'UTF-8' })
+      .ele('tns:SubmissionData', {
+        'xsi:schemaLocation': 'http://gov.hud.arm/form_9902_databag_6_0 form_9902_databag_6_0.xsd',
+        'xmlns:tns' : 'http://gov.hud.arm/form_9902_databag_6_0',
+        'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
+      });
+
+    let tagMap = {};
+    tagMap['Report_Period_Id'] = 'NWSHOP__Report_Period_Id__c';
+    tagMap['Ethnicity_Households_Counseling_Hispanic'] = 'NWSHOP__Hispanic__c';
+    tagMap['Ethnicity_Households_Counseling_Non_Hispanic'] = 'NWSHOP__Non_Hispanic__c';
+    tagMap['Ethnicity_Households_Counseling_No_Response'] = 'NWSHOP__No_Response__c';
+    tagMap['Section_3_Total'] = 'NWSHOP__Section_3_Total__c';
+    tagMap['Race_Households_Counseling_American_Indian'] = 'NWSHOP__American_Indian__c';
+    tagMap['Race_Households_Counseling_Asian'] = 'NWSHOP__Asian__c';
+    tagMap['Race_Households_Counseling_Black_African_American'] = 'NWSHOP__Black_African_American__c';
+    tagMap['Race_Households_Counseling_American_Indian'] = 'NWSHOP__American_Indian__c';
+    tagMap['Race_Households_Counseling_Pacific_Islanders'] = 'NWSHOP__Pacific_Islanders__c';
+    tagMap['Race_Households_Counseling_White'] = 'NWSHOP__White__c';
+    tagMap['Race_Households_Counseling_More_Than_One_Race'] = 'NWSHOP__More_Than_one_Race__c';
+    tagMap['Race_Households_Counseling_No_Response'] = 'NWSHOP__MultiRace_No_Response__c';
+    tagMap['Section_4_Total'] = 'NWSHOP__Section_4_Total__c';
+    tagMap['Less30_AMI_Level'] = 'NWSHOP__Less30_AMI_Level__c';
+    tagMap['a30_49_AMI_Level'] = 'NWSHOP__A30_49_AMI_Level__c';
+    tagMap['a50_79_AMI_Level'] = 'NWSHOP__A50_79_AMI_Level__c';
+    tagMap['a80_100_AMI_Level'] = 'NWSHOP__A80_100_AMI_Level__c';
+    tagMap['Greater100_AMI_Level'] = 'NWSHOP__Greater100_AMI_Level__c';
+    tagMap['AMI_No_Response'] = 'NWSHOP__AMI_No_Response__c';
+    tagMap['Section_5_Total'] = 'NWSHOP__Section_5_Total__c';
+    tagMap['Lives_In_Rural_Area'] = 'NWSHOP__Household_Lives_In_Rural_Area__c';
+    tagMap['Does_Not_Live_In_Rural_Area'] = 'NWSHOP__Household_Does_Not_Live_In_Rural_Area__c';
+    tagMap['Rural_Area_No_Response'] = 'NWSHOP__Rural_Area_No_Response__c';
+    tagMap['Section_6_Total'] = 'NWSHOP__Section_6_Total__c';
+    tagMap['Limited_English_Proficient'] = 'NWSHOP__Is_Limited_English_Proficient__c';
+    tagMap['Not_Limited_English_Proficient'] = 'NWSHOP__Not_Limited_English_Proficient__c';
+    tagMap['Limited_English_Proficient_No_Response'] = 'NWSHOP__Limited_English_Proficient_No_Response__c';
+    tagMap['Section_7_Total'] = 'NWSHOP__Section_7_Total__c';
+    tagMap['Education_Compl_Fin_Lit_Workshop'] = 'NWSHOP__Fin_Lit_Workshop__c';
+    tagMap['Education_Compl_Pred_Lend_Workshop'] = 'NWSHOP__Pred_Lend_Workshop__c';
+    tagMap['Education_Compl_Fair_Housing_Workshop'] = 'NWSHOP__Fair_Housing_Workshop__c';
+    tagMap['Education_Compl_Homeless_Prev_Workshop'] = 'NWSHOP__Homeless_Prev_Workshop__c';
+    tagMap['Education_Compl_Rental_Workshop'] = 'NWSHOP__Rental_Workshop__c';
+    tagMap['Education_Compl_PrePurchase_HomeBuyer_Workshop'] = 'NWSHOP__PrePurchase_HomeBuyer_Workshop__c';
+    tagMap['Education_Compl_NonDelinqency_PostPurchase_Workshop'] = 'NWSHOP__NonDelinqency_PostPurchase_Workshop__c';
+    tagMap['Education_Compl_Resolv_Prevent_Mortg_Delinq_Workshop'] = 'NWSHOP__Resolv_Prevent_Mortg_Delinq_Workshop__c';
+    tagMap['Education_Compl_Disaster_Prepare_Workshop'] = 'NWSHOP__Completed_Disaster_Preparedness_Workshop__c';
+    tagMap['Education_Compl_Disaster_Recovery_Workshop'] = 'NWSHOP__Disaster_Recover_Workshop__c';
+    tagMap['Section_8_Total'] = 'NWSHOP__Section_8_Total__c';
+    tagMap['One_Homeless_Assistance_Counseling'] = 'NWSHOP__Homeless_Assistance_Counseling__c';
+    tagMap['One_Rental_Topics_Counseling'] = 'NWSHOP__Rental_Topics_Counseling__c';
+    tagMap['One_PrePurchase_HomeBuying_Counseling'] = 'NWSHOP__PrePurchase_HomeBuying_Counseling__c';
+    tagMap['One_Non_Delinq_Post_Purchase_Counseling'] = 'NWSHOP__Fin_Management_Counseling__c';
+    tagMap['One_Reverse_Mortgage_Counseling'] = 'NWSHOP__Reverse_Mortgage_Counseling__c';
+    tagMap['One_Resolv_Prevent_Fwd_Mortg_Delinq_Counseling'] = 'NWSHOP__Forward_Mortgage_Delinquency_or_Default__c';
+    tagMap['One_Resolv_Prevent_Rev_Mortg_Delinq_Counseling'] = 'NWSHOP__Reverse_Mortgage_Delinquency_or_Default__c';
+    tagMap['One_Disaster_Preparedness_Assistance_Counseling'] = 'NWSHOP__Disaster_Preparedness_Assistance__c';
+    tagMap['One_Disaster_Recovery_Assistance_Counseling'] = 'NWSHOP__Disaster_Recovery_Assistance__c';
+    tagMap['Section_9_Total'] = 'NWSHOP__Section_9_Total__c';
+    tagMap['Outcome_One_On_One_And_Education'] = 'NWSHOP__One_On_One_And_Group__c';
+    tagMap['Outcome_Received_Info_Fair_Housing'] = 'NWSHOP__Received_Info_Fair_Housing__c';
+    tagMap['Outcome_Developed_Budget'] = 'NWSHOP__Developed_Sustainable_Budget__c';
+    tagMap['Outcome_Improved_Financial_Capacity'] = 'NWSHOP__Improved_Financial_Capacity__c';
+    tagMap['Outcome_Gained_Access_Resources_Improve_Housing'] = 'NWSHOP__Gained_Access_Resources_Improve_Housing__c';
+    tagMap['Outcome_Gained_Access_NonHousing_Resources'] = 'NWSHOP__Gained_Access_NonHousing_Resources__c';
+    tagMap['Outcome_Homeless_Obtained_Housing'] = 'NWSHOP__Homeless_Obtained_Housing__c';
+    tagMap['Outcome_Gained_Access_Disaster_Recovery_NonHousing_Resources'] = 'NWSHOP__Disaster_Recovery_Non_housing_Resources__c';
+    tagMap['Outcome_Obtained_Disaster_Recovery_Housing_Resources'] = 'NWSHOP__Disaster_Recovery_Housing_Resources__c';
+    tagMap['Outcome_Developed_Emergency_Preparedness_Plan'] = 'NWSHOP__Emergency_Preparedness_Plan__c';
+    tagMap['Outcome_Received_Rental_Counseling_Avoided_Eviction'] = 'NWSHOP__Rec_Rental_Counseling_Avoided_Eviction__c';
+    tagMap['Outcome_Received_Rental_Counseling_Improved_Living_Conditions'] = 'NWSHOP__Rec_Rental_Counseling_Living_Conditions__c';
+    tagMap['Outcome_Received_PrePurchase_Counseling_Purchased_Housing'] = 'NWSHOP__PrePurchase_Counseling_Purchased_Housing__c';
+    tagMap['Outcome_Received_Reverse_Mortgage_Counseling_Obtained_HECM'] = 'NWSHOP__Mortgage_Counseling_Obtained_HECM__c';
+    tagMap['Outcome_Received_NonDelinquency_PostPurchase_Counseling_Improve_Conditions_Affordability'] = 'NWSHOP__NonDel_PostPur_Coun_Imp_Cond_Afford__c';
+    tagMap['Outcome_Prevented_Resolved_Forward_Mortgage_Default'] = 'NWSHOP__Prevented_Forward_Mortgage_Default__c';
+    tagMap['Outcome_Prevented_Resolved_Reverse_Mortgage_Default'] = 'NWSHOP__Prevented_Reverse_Mortgage_Default__c';
+    tagMap['Outcome_Received_Forward_Mortgage_Modification_Remain_Current_In_Modified_Mortgage'] = 'NWSHOP__Forward_Mortgage_Mod_Improved_Financials__c';
+    tagMap['Outcome_Received_Forward_Mortgage_Modification_Improved_Financial_Capacity'] = 'NWSHOP__Forward_Mod_Improved_Financial_Capacity__c';
+    tagMap['Section_10_Total'] = 'NWSHOP__Section_10_Total__c';
+
+    const top_data_node = root.ele('tns:Form_9902');
+    for(const [key, value] of Object.entries(tagMap)) {
+      for (let objAp of lst9902) {
+        let actType = objAp.NWSHOP__Activity_type_id__c.toString();
+        if (rptIdFlg == true && key == 'Report_Period_Id') {
+          top_data_node.ele('tns:' + key).txt(objAp[tagMap[key]]).up();
+          rptIdFlg = false
+        } else if (key != 'Report_Period_Id') {
+          if(!objAp[tagMap[key]]) {
+            top_data_node.ele('tns:' + key, {activity_type_id: actType}).txt(0);
+          } else {
+            top_data_node.ele('tns:' + key, {activity_type_id: actType}).txt(objAp[tagMap[key]]);
+          }
+
+        }
+      }
+    }
+
+    root.up();
+    let gstagMap = {};
+    let gsatagMap = {};
+    let atagMap = {};
+    gstagMap['Group_Session_Id'] = 'NWSHOP__Group_Session_Id__c';
+    gstagMap['Group_Session_Counselor_Id'] = 'NWSHOP__Group_Session_Counselor_Id__c';
+    gstagMap['Group_Session_Counselor_HUD_Id'] = 'NWSHOP__Group_Session_Counselor_HUD_Id__c';
+    gstagMap['Group_Session_Title'] = 'NWSHOP__Group_Session_Title__c';
+    gstagMap['Group_Session_Date'] = 'NWSHOP__Group_Session_Date__c';
+    gstagMap['Group_Session_Duration'] = 'NWSHOP__Group_Session_Duration__c';
+    gstagMap['Group_Session_Type'] = 'NWSHOP__Group_Session_Type__c';
+    gstagMap['Group_Session_Attribute_HUD_Grant'] = 'NWSHOP__Group_Session_Attribute_HUD_Grant__c';
+    gstagMap['Group_Session_Activity_Type'] = 'NWSHOP__Group_Session_Activity_Type__c';
+    gsatagMap['Attendee_Id'] = 'NWSHOP__Group_Session_Attendee_Id__c';
+    gsatagMap['Attendee_Fee_Amount'] = 'NWSHOP__Attendee_Fee_Amount__c';
+    gsatagMap['Attendee_Referred_By'] = 'NWSHOP__Attendee_Referred_By__c';
+    gsatagMap['Attendee_FirstTime_Home_Buyer'] = 'NWSHOP__Attendee_FirstTime_Home_Buyer__c';
+    gsatagMap['Attendee_Income_Level'] = 'NWSHOP__Group_Session_Attendee_Income_Level__c';
+    gsatagMap['Attendee_City'] = 'NWSHOP__Group_Session_Attendee_City__c';
+    gsatagMap['Attendee_State'] = 'NWSHOP__Group_Session_Attendee_State__c';
+    gsatagMap['Attendee_Zip_Code'] = 'NWSHOP__Group_Session_Attendee_Zip_Code__c';
+    gsatagMap['Attendee_Rural_Area'] = 'NWSHOP__Group_Session_Attendee_Rural_Area_Status__c';
+    gsatagMap['Attendee_Limited_English_Proficiency'] = 'NWSHOP__Grp_Attendee_Limited_English_Proficiency__c';
+    atagMap['Attendee_Id'] = 'NWSHOP__Attendee_ID__c';
+    atagMap['Attendee_Income_Level'] = 'NWSHOP__Attendee_Income_Level__c';
+    atagMap['Attendee_City'] = 'NWSHOP__Attendee_City__c';
+    atagMap['Attendee_State'] = 'NWSHOP__Attendee_State__c';
+    atagMap['Attendee_Zip_Code'] = 'NWSHOP__Attendee_Zip_Code__c';
+    atagMap['Attendee_Rural_Area'] = 'NWSHOP__Attendee_Rural_Area__c';
+    atagMap['Attendee_Limited_English_Proficiency'] = 'NWSHOP__Attendee_Limited_English_Proficiency__c';
+    atagMap['Attendee_Race_ID'] = 'NWSHOP__Attendee_Race_ID__c';
+    atagMap['Attendee_Ethnicity_ID'] = 'NWSHOP__Attendee_Ethnicity_ID__c';
+
+    let gsalst9902 = [];
+    let gslst9902 = [];
+    let alst9902 = [];
+    let GSMap = {};
+    const groupSessionQuery = 'select Id,NWSHOP__Group_Session_Id__c,NWSHOP__Group_Session_Counselor_Id__c,NWSHOP__Group_Session_Counselor_HUD_Id__c,NWSHOP__Group_Session_Title__c,NWSHOP__Group_Session_Date__c,\n' +
+      '  NWSHOP__Group_Session_Duration__c,NWSHOP__Group_Session_Type__c,NWSHOP__Group_Session_Attribute_HUD_Grant__c,NWSHOP__Group_Session_Activity_Type__c\n' +
+      '  from NWSHOP__X9902Summary__c where NWSHOP__X9902__c = \'' + recordId + '\'  AND NWSHOP__Element_Type__c = \'Group Session\' AND NWSHOP__Group_Session_Id__c != NULL';
+    const groupSessionAttendeeQuery = 'select Id,NWSHOP__Group_Session_Id__c,NWSHOP__Group_Session_Attendee_ID__c,NWSHOP__Attendee_Fee_Amount__c,NWSHOP__Attendee_Referred_By__c,NWSHOP__Attendee_FirstTime_Home_Buyer__c,NWSHOP__Group_Session_Attendee_Income_Level__c,\n' +
+      '  NWSHOP__Group_Session_Attendee_Address_1__c, NWSHOP__Group_Session_Attendee_Address_2__c, NWSHOP__Group_Session_Attendee_City__c, NWSHOP__Group_Session_Attendee_State__c,NWSHOP__Group_Session_Attendee_Zip_Code__c,\n' +
+      '  NWSHOP__Group_Session_Attendee_Rural_Area_Status__c, NWSHOP__Grp_Attendee_Limited_English_Proficiency__c\n' +
+      '  from NWSHOP__X9902Summary__c where NWSHOP__X9902__c = \'' + recordId + '\' AND NWSHOP__Element_Type__c = \'Group Session Attendee\' AND NWSHOP__Group_Session_Id__c != NULL';
+    const attendeeQuery = 'select Id, NWSHOP__Attendee_ID__c, NWSHOP__Attendee_Fname__c, NWSHOP__Attendee_Lname__c, NWSHOP__Attendee_Mname__c, NWSHOP__Attendee_Income_Level__c, NWSHOP__Attendee_Address_1__c, NWSHOP__Attendee_Address_2__c,\n' +
+      '  NWSHOP__Attendee_City__c, NWSHOP__Attendee_State__c, NWSHOP__Attendee_Zip_Code__c, NWSHOP__Attendee_Rural_Area__c, NWSHOP__Attendee_Limited_English_Proficiency__c, NWSHOP__Attendee_Race_ID__c, NWSHOP__Attendee_Ethnicity_ID__c\n' +
+      '  from NWSHOP__X9902Summary__c where NWSHOP__X9902__c = \'' + recordId + '\' AND NWSHOP__Element_Type__c = \'Attendee\'';
+
+
+    const resultGroup = await doQuery(groupSessionQuery, conn);
+    gslst9902 = resultGroup.records;
+    console.log('### groupSessionQuery: ' + groupSessionQuery);
+    console.log('### resultGroup: ' + JSON.stringify(resultGroup.nextRecordsUrl));
+    if(resultGroup.nextRecordsUrl) {
+      let isDone = false;
+      let curNextUrl = resultGroup.nextRecordsUrl;
+      while(!isDone) {
+        const moreResults = await doMoreQuery(conn, curNextUrl);
+
+        console.log('### moreResults: ' + JSON.stringify(moreResults.nextRecordsUrl));
+        if(moreResults && moreResults.records) {
+          gslst9902 = [...gslst9902, ...moreResults.records];
+        }
+
+        if(moreResults && moreResults.nextRecordsUrl) {
+          curNextUrl = moreResults.nextRecordsUrl;
+        } else {
+          isDone = true;
+        }
+      }
+    }
+    console.log('### gslst9902 size: ' + gslst9902.length);
+
+    const resultSessionAttendee = await doQuery(groupSessionAttendeeQuery, conn);
+    gsalst9902 = resultSessionAttendee.records;
+
+    if(resultSessionAttendee.nextRecordsUrl) {
+      let isDone = false;
+      let curNextUrl = resultSessionAttendee.nextRecordsUrl;
+      while(!isDone) {
+        const moreResults = await doMoreQuery(conn, curNextUrl);
+
+        console.log('### moreResults: ' + JSON.stringify(moreResults.nextRecordsUrl));
+        if(moreResults && moreResults.records) {
+          gsalst9902 = [...gsalst9902, ...moreResults.records];
+        }
+
+        if(moreResults && moreResults.nextRecordsUrl) {
+          curNextUrl = moreResults.nextRecordsUrl;
+        } else {
+          isDone = true;
+        }
+      }
+    }
+    console.log('### gsalst9902: ' + gsalst9902.length);
+
+    const resultAttendee = await doQuery(attendeeQuery, conn);
+    alst9902 = resultAttendee.records;
+
+    if(resultAttendee.nextRecordsUrl) {
+      let isDone = false;
+      let curNextUrl = resultAttendee.nextRecordsUrl;
+      while(!isDone) {
+        const moreResults = await doMoreQuery(conn, curNextUrl);
+
+        console.log('### moreResults: ' + JSON.stringify(moreResults.nextRecordsUrl));
+        if(moreResults && moreResults.records) {
+          alst9902 = [...alst9902, ...moreResults.records];
+        }
+
+        if(moreResults && moreResults.nextRecordsUrl) {
+          curNextUrl = moreResults.nextRecordsUrl;
+        } else {
+          isDone = true;
+        }
+      }
+    }
+    console.log('### alst9902: ' + alst9902.length);
+
+    for(let gs of gslst9902){
+      GSMap[gs.Group_Session_Id__c] = gs;
+    }
+    const group_sessions = root.ele('tns:Group_Sessions');
+    for(const [sumKey, value] of Object.entries(GSMap)) {
+      let objAP1 = GSMap[sumKey];
+      const profile = group_sessions.ele('tns:Group_Session');
+
+      for(const [key, value] of Object.entries(gstagMap)) {
+
+        if(objAP1[gstagMap[key]]) {
+          if (key == 'Group_Session_Date') {
+            var date_format = new Date(objAP1[gstagMap[key]]);
+            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+              + ('0' + date_format.getDate()).slice(-2) + '-'
+              + date_format.getFullYear();
+
+            profile.ele('tns:' + key).txt(formatted_date).up();
+          } else {
+            profile.ele('tns:' + key).txt(objAP1[gstagMap[key]].toString()).up();
+          }
+        }
+      }
+
+      const sessionAttendees = profile.ele('tns:Group_Session_Attendees');
+      for(let objAP2 of gsalst9902){
+        if(objAP2.Group_Session_Id__c == objAP1.Group_Session_Id__c){
+
+
+          const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
+          for(const [key, value] of Object.entries(gsatagMap)){
+            if(objAP2[gsatagMap[key]]) {
+              sessionAttendee.ele('tns:' + key).txt(objAP2[gsatagMap[key]]).up();
+            } else if(key == 'Attendee_Fee_Amount') {
+              sessionAttendee.ele('tns:' + key).txt('0').up();
+            } else if(key == 'Attendee_Fee_Amount') {
+              sessionAttendee.ele('tns:' + key).txt('0').up();
+            }
+          }
+        }
+      }
+    }
+
+
+    const attendees = root.ele('tns:Attendees');
+    for(let objAp of alst9902) {
+      const attendee = attendees.ele('tns:Attendee');
+      for (const [key, value] of Object.entries(atagMap)) {
+        if(objAp[atagMap[key]]) {
+          attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
+        }
+      }
+
+    }
+
+    root.up();
+    const xml = root.end({ prettyPrint: true });
+
+    const  strFileEncode = Buffer.from(xml).toString('base64');
+    const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
+      '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postForm9902Data><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
+      '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '28' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
+      '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
+    const subXML1 = '<ser:submissionData>';
+    const subXML2 = '</ser:submissionData>';
+    const strEncodedSubxml = subXML1+strFileEncode+subXML2;
+    const strsubEncode = '<ser:submissionDataEncoding>TEXT/XML</ser:submissionDataEncoding>';
+    const strEnv = '</ser:postForm9902Data></soapenv:Body></soapenv:Envelope>';
+
+    const finalBody = soapXML+strsubEncode+strEncodedSubxml+strEnv;
+
+    const config = {
+      headers: {
+        'Content-Type' : 'text/xml; charset=UTF-8',
+        'Cache-Control' : 'no-cache',
+        'Accept-Language': 'en-us',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Authorization' : authHeader
+      }
+    }
+
+    axios.post(settingVal.EndpointURL__c, finalBody, config).then(res => {
+      let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
+
+      console.log('### submissionId: ' + submissionId);
+      let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
+        '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
+
+      let task = cron.schedule('* * * * *', () => {
+        console.log('### running cron');
+        axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
+          let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
+          console.log('### submissionStatus: ' + submissionStatus);
+
+          if(submissionStatus == 'DONE') {
+
+            conn.sobject("NWSHOP__X9902__c").update({
+              Id : recordId,
+              NWSHOP__Summary9902SubmissionStatus__c : submissionStatus
+            }, function(err, ret) {
+              if (err || !ret.success) { return console.error(err, ret); }
+              console.log('Updated Successfully : ' + ret.id);
+              task.stop();
+            });
+          } else if(submissionStatus.indexOf('ERROR') != -1){
+
+            conn.sobject("NWSHOP__X9902__c").update({
+              Id : recordId,
+              NWSHOP__Summary9902SubmissionStatus__c : resStatus.data
+            }, function(err, ret) {
+              if (err || !ret.success) { return console.error(err, ret); }
+              console.log('Updated Successfully : ' + ret.id);
+              task.stop();
+            });
+          }
+
+        });
+      });
+
+
+      conn.sobject("NWSHOP__X9902__c").update({
+        Id : recordId,
+        NWSHOP__Summary9902SubmissionID__c : submissionId,
+      }, function(err, ret) {
+        if (err || !ret.success) { return console.error(err, ret); }
+        console.log('### Updated Successfully : ' + ret.id);
+      });
+
+
+
+
+    }).catch(err => {
+      console.log('### err axios: ' + err);
+    });
+  }
+}
+
+app.get('/query-summary', async (request, response) => {
   console.log('### query summary');
   const session = getSession(request, response);
   if (session == null) {
     return;
   }
-
 
   const query = 'select Id,NWSHOP__Section_3_Total__c, NWSHOP__Report_Period_Id__c, NWSHOP__Activity_type_id__c, NWSHOP__Hispanic__c, NWSHOP__Non_Hispanic__c, NWSHOP__No_Response__c, NWSHOP__American_Indian__c, NWSHOP__Asian__c, NWSHOP__Black_African_American__c, NWSHOP__Pacific_Islanders__c, \n' +
     '    NWSHOP__White__c, NWSHOP__AMINDWHT__c, NWSHOP__ASIANWHT__c, NWSHOP__BLKWHT__c, NWSHOP__AMRCINDBLK__c, NWSHOP__OtherMLTRC__c, NWSHOP__MultiRace_No_Response__c, NWSHOP__Section_4_Total__c, NWSHOP__Less30_AMI_Level__c, NWSHOP__A50_79_AMI_Level__c, NWSHOP__A30_49_AMI_Level__c, NWSHOP__A80_100_AMI_Level__c, \n' +
@@ -614,14 +994,10 @@ const doSummaryQuery = async(request, response) => {
     '    NWSHOP__Emergency_Preparedness_Plan__c, NWSHOP__Prevented_Forward_Mortgage_Default__c, NWSHOP__Prevented_Reverse_Mortgage_Default__c, NWSHOP__Forward_Mortgage_Mod_Improved_Financials__c, NWSHOP__Forward_Mod_Improved_Financial_Capacity__c\n' +
     '    from NWSHOP__X9902Summary__c where NWSHOP__X9902__c = \'' + request.query.q + '\' AND NWSHOP__Element_Type__c = \'9902\' ';
 
-  console.log('### query: ' + query);
-
   if (!query) {
     response.status(400).send('Missing query parameter.');
     return;
   }
-  const conn = resumeSalesforceConnection(session);
-
   const settingVal = {
     Username__c: request.query.username,                                        // SEND PARAMS
     Password__c: request.query.password,                                      // SEND PARAMS
@@ -632,6 +1008,20 @@ const doSummaryQuery = async(request, response) => {
     AgencyID__c: request.query.agencyid,     // grab from call
   };
 
+  doQuerySummary(session, settingVal, query, request.query.q);
+
+  response.status(200).send('Processing now, this will take a moment. Please check salesforce.');
+});
+
+
+app.listen(app.get('port'), () => {
+  console.log('### running on port: ' + app.get('port'));
+});
+
+
+/*
+
+const conn = resumeSalesforceConnection(session);
 
   conn.query(query, (error, result) => {
     if (error) {
@@ -942,12 +1332,4 @@ const doSummaryQuery = async(request, response) => {
       });
     }
   });
-}
-
-
-app.get('/query-summary', doSummaryQuery);
-
-
-app.listen(app.get('port'), () => {
-  console.log('### running on port: ' + app.get('port'));
-});
+ */
