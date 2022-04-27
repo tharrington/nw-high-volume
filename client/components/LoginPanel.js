@@ -46,7 +46,7 @@ export default class LoginPanel extends React.Component {
       <div class="slds-grid">
         <div class="slds-col">
           <div className="slds-box slds-theme--shade">
-            <p className="slds-text-heading--medium slds-m-bottom--medium">Welcome, please enter your connected app secrete and key:</p>
+            <p className="slds-text-heading--medium slds-m-bottom--medium">Welcome, please enter your connected app secret and key:</p>
 
             <div>
               <div className="slds-form-element">
