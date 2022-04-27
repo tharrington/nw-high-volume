@@ -43,12 +43,12 @@ export default class LoginPanel extends React.Component {
 
   render() {
     return (
-      <div className="slds-modal slds-fade-in-open">
-        <div className="slds-modal__container">
+      <div class="slds-grid">
+        <div class="slds-col">
           <div className="slds-box slds-theme--shade">
             <p className="slds-text-heading--medium slds-m-bottom--medium">Welcome, please enter your connected app secrete and key:</p>
 
-            <div className="slds-align--absolute-center">
+            <div>
               <div className="slds-form-element">
                 <label className="slds-form-element__label" htmlFor="text-input-id-47">
                   Login Url
@@ -59,18 +59,7 @@ export default class LoginPanel extends React.Component {
               </div>
             </div>
 
-            <div className="slds-align--absolute-center">
-              <div className="slds-form-element">
-                <label className="slds-form-element__label" htmlFor="text-input-id-47">
-                  Callback Url
-                </label>
-                <div className="slds-form-element__control">
-                  <input value={this.state.callbackUrl} onChange={this.handleCallbackUrl} placeholder="Callback Url" className='slds-input'/>
-                </div>
-              </div>
-            </div>
-
-            <div className="slds-align--absolute-center">
+            <div className="">
               <div className="slds-form-element">
                 <label className="slds-form-element__label" htmlFor="text-input-id-47">
                   Consumer Key
@@ -81,7 +70,7 @@ export default class LoginPanel extends React.Component {
               </div>
             </div>
 
-            <div className="slds-align--absolute-center">
+            <div className="">
               <div className="slds-form-element">
                 <label className="slds-form-element__label" htmlFor="text-input-id-47">
                   Consumer Secret
