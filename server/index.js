@@ -160,10 +160,434 @@ app.get('/auth/whoami', (request, response) => {
 });
 
 
-/**
- * Endpoint for performing a SOQL query on Salesforce
- */
-app.get('/query', (request, response) => {
+function doMoreQuery(conn, nextRecordsUrl) {
+  return new Promise((resolve, reject) => {
+    console.log('### doing more query: ' + nextRecordsUrl);
+    conn.queryMore(nextRecordsUrl, (error, result) => {
+      console.log('#### error');
+      console.log(error);
+      resolve(result);
+    });
+  });
+}
+
+function doQuery(query, conn) {
+  return new Promise((resolve, reject) => {
+    conn.query(query, (err, data) => {
+      if (err) return reject(err);
+      resolve(data);
+    });
+  });
+}
+
+
+const doQueryProfile = async (session, settingVal, query, recordId) => {
+  const conn = resumeSalesforceConnection(session);
+
+
+  let queryResult = await doQuery(query, conn);
+  console.log('### result: ' + JSON.stringify(queryResult.nextRecordsUrl));
+  let result;
+  if(queryResult) {
+    result = queryResult.records;
+  }
+
+  if(queryResult.nextRecordsUrl) {
+    let isDone = false;
+    let curNextUrl = queryResult.nextRecordsUrl;
+    while(!isDone) {
+      const moreResults = await doMoreQuery(conn, curNextUrl);
+
+      console.log('### moreResults: ' + JSON.stringify(moreResults.nextRecordsUrl));
+      if(moreResults && moreResults.records) {
+        result = [...result, ...moreResults.records];
+      }
+
+      if(moreResults && moreResults.nextRecordsUrl) {
+        curNextUrl = moreResults.nextRecordsUrl;
+      } else {
+        isDone = true;
+      }
+    }
+  }
+  if (false) {
+    console.error('Salesforce data API error: ' + JSON.stringify(error));
+    response.status(500).json(error);
+    return;
+  } else {
+
+
+
+    console.log('### settingVal: ' + JSON.stringify(settingVal));
+    let authHeader = 'Basic ' + Buffer.from(settingVal.Username__c + ':' + settingVal.Password__c).toString('base64');
+    console.log('### authHeader: ' + authHeader);
+
+    console.log('### total records: ' + result.length);
+
+    let root = create({ version: '1.0', encoding: 'UTF-8' })
+      .ele('tns:SubmissionData', {
+        'xsi:schemaLocation': 'http://gov.hud.arm/client_profile_databag_6_0 client_profile_databag_6_0.xsd',
+        'xmlns:tns' : 'http://gov.hud.arm/client_profile_databag_6_0',
+        'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
+      }).ele('tns:Client_Profiles');
+
+    for(let record of result) {
+      const profile = root.ele('tns:Client_Profile');
+      if(record.NWSHOP__Client_ID_Num__c) {
+        profile.ele('tns:Client_ID_Num').txt(record.NWSHOP__Client_ID_Num__c).up();
+      }
+      if(record.NWSHOP__Client_Case_Num__c) {
+        profile.ele('tns:Client_Case_Num').txt(record.NWSHOP__Client_Case_Num__c).up();
+      }
+      if(record.NWSHOP__Client_City__c) {
+        profile.ele('tns:Client_City').txt(record.NWSHOP__Client_City__c).up();
+      }
+      if(record.NWSHOP__Client_State__c) {
+        profile.ele('tns:Client_State').txt(record.NWSHOP__Client_State__c).up();
+      }
+      if(record.NWSHOP__Client_Zip__c) {
+        profile.ele('tns:Client_Zip').txt(record.NWSHOP__Client_Zip__c).up();
+      }
+      if(record.NWSHOP__Client_New_City__c) {
+        profile.ele('tns:Client_New_City').txt(record.NWSHOP__Client_New_City__c).up();
+      }
+      if(record.NWSHOP__Client_New_State__c) {
+        profile.ele('tns:Client_New_State').txt(record.NWSHOP__Client_New_State__c).up();
+      }
+      if(record.NWSHOP__Client_New_Zip__c) {
+        profile.ele('tns:Client_New_Zip').txt(record.NWSHOP__Client_New_Zip__c).up();
+      }
+
+      if(record.NWSHOP__Client_Family_Size__c) {
+        profile.ele('tns:Client_Family_Size').txt(record.NWSHOP__Client_Family_Size__c).up();
+      }
+      if(record.NWSHOP__Client_Gender__c) {
+        profile.ele('tns:Client_Gender').txt(record.NWSHOP__Client_Gender__c).up();
+      }
+      if(record.NWSHOP__Client_Marital_Status__c) {
+        profile.ele('tns:Client_Marital_Status').txt(record.NWSHOP__Client_Marital_Status__c).up();
+      }
+      if(record.NWSHOP__Client_Race_ID__c) {
+        profile.ele('tns:Client_Race_ID').txt(record.NWSHOP__Client_Race_ID__c).up();
+      }
+      if(record.NWSHOP__Client_Ethnicity_ID__c) {
+        profile.ele('tns:Client_Ethnicity_ID').txt(record.NWSHOP__Client_Ethnicity_ID__c).up();
+      }
+
+      if(record.NWSHOP__Client_Household_Gross_Monthly_Income__c) {
+        profile.ele('tns:Client_Household_Gross_Monthly_Income').txt(record.NWSHOP__Client_Household_Gross_Monthly_Income__c).up();
+      }
+      if(record.NWSHOP__Client_Head_Of_Household_Type__c) {
+        profile.ele('tns:Client_Head_Of_Household_Type').txt(record.NWSHOP__Client_Head_Of_Household_Type__c).up();
+      }
+      if(record.NWSHOP__Client_Counselor_ID__c) {
+        profile.ele('tns:Client_Counselor_ID').txt(record.NWSHOP__Client_Counselor_ID__c).up();
+      }
+      if(record.NWSHOP__Client_Counselor_HUD_Id__c) {
+        profile.ele('tns:Client_Counselor_HUD_Id').txt(record.NWSHOP__Client_Counselor_HUD_Id__c).up();
+      }
+      if(record.NWSHOP__Client_Highest_Educ_Grade__c) {
+        profile.ele('tns:Client_Highest_Educ_Grade').txt(record.NWSHOP__Client_Highest_Educ_Grade__c).up();
+      }
+      if(record.NWSHOP__Client_Farm_Worker__c) {
+        profile.ele('tns:Client_Farm_Worker').txt(record.NWSHOP__Client_Farm_Worker__c).up();
+      }
+      if(record.NWSHOP__Client_Rural_Area__c) {
+        profile.ele('tns:Client_Rural_Area').txt(record.NWSHOP__Client_Rural_Area__c).up();
+      }
+      if(record.NWSHOP__Client_Limited_English_Proficiency__c) {
+        profile.ele('tns:Client_Limited_English_Proficiency').txt(record.NWSHOP__Client_Limited_English_Proficiency__c).up();
+      }
+
+      if(record.NWSHOP__Client_Colonias_Resident__c) {
+        profile.ele('tns:Client_Colonias_Resident').txt(record.NWSHOP__Client_Colonias_Resident__c).up();
+      }
+      if(record.NWSHOP__Client_HUD_Assistance__c) {
+        profile.ele('tns:Client_HUD_Assistance').txt(record.NWSHOP__Client_HUD_Assistance__c).up();
+      }
+      if(record.NWSHOP__Client_Disabled__c) {
+        profile.ele('tns:Client_Disabled').txt(record.NWSHOP__Client_Disabled__c).up();
+      }
+      if(record.NWSHOP__Client_Dependents_Num__c !== null) {
+        profile.ele('tns:Client_Dependents_Num').txt(record.NWSHOP__Client_Dependents_Num__c).up();
+      }
+
+
+      if(record.NWSHOP__Client_Intake_DT__c) {
+
+        var date_format = new Date(record.NWSHOP__Client_Intake_DT__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear();
+        profile.ele('tns:Client_Intake_DT').txt(formatted_date).up();
+      }
+      if(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c) {
+
+        var date_format = new Date(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear() + ' 12:00';
+        profile.ele('tns:Client_Counsel_Start_Session_DateTime').txt(formatted_date).up();
+      }
+      if(record.NWSHOP__Client_Counsel_End_Session_DateTime__c) {
+
+        var date_format = new Date(record.NWSHOP__Client_Counsel_End_Session_DateTime__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear() + ' 12:00';
+
+        profile.ele('tns:Client_Counsel_End_Session_DateTime').txt(formatted_date).up();
+      }
+
+      if(record.NWSHOP__Client_Language_Spoken__c) {
+        profile.ele('tns:Client_Language_Spoken').txt(record.NWSHOP__Client_Language_Spoken__c).up();
+      }
+      if(record.NWSHOP__Client_Session_Duration__c !== null) {
+        profile.ele('tns:Client_Session_Duration').txt(record.NWSHOP__Client_Session_Duration__c).up();
+      }
+
+      if(record.NWSHOP__Client_Counseling_Type__c) {
+        profile.ele('tns:Client_Counseling_Type').txt(record.NWSHOP__Client_Counseling_Type__c).up();
+      }
+      if(record.NWSHOP__Client_Counseling_Termination__c) {
+        profile.ele('tns:Client_Counseling_Termination').txt(record.NWSHOP__Client_Counseling_Termination__c).up();
+      }
+      if(record.NWSHOP__Client_Counseling_Fee__c !== null) {
+        profile.ele('tns:Client_Counseling_Fee').txt(record.NWSHOP__Client_Counseling_Fee__c).up();
+      }
+
+      if(record.NWSHOP__Client_Attribute_HUD_Grant__c) {
+        profile.ele('tns:Client_Attribute_HUD_Grant').txt(record.NWSHOP__Client_Attribute_HUD_Grant__c).up();
+      }
+      if(record.NWSHOP__Client_Grant_Amount_Used__c) {
+        profile.ele('tns:Client_Grant_Amount_Used').txt(record.NWSHOP__Client_Grant_Amount_Used__c).up();
+      }
+      if(record.NWSHOP__Client_HECM_Certificate__c) {
+        profile.ele('tns:Client_HECM_Certificate').txt(record.NWSHOP__Client_HECM_Certificate__c).up();
+      }
+
+      if(record.NWSHOP__Client_HECM_Certificate_Issue_Date__c) {
+        var date_format = new Date(record.NWSHOP__Client_HECM_Certificate_Issue_Date__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear();
+        profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(formatted_date).up();
+      }
+      if(record.NWSHOP__Client_HECM_Certificate_Expiration_Date__c) {
+        var date_format = new Date(record.NWSHOP__Client_HECM_Certificate_Expiration_Date__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear();
+        profile.ele('tns:Client_HECM_Certificate_Expiration_Date').txt(formatted_date).up();
+      }
+
+      if(record.NWSHOP__Client_HECM_Certificate_ID__c) {
+        profile.ele('tns:Client_HECM_Certificate_ID').txt(record.NWSHOP__Client_HECM_Certificate_ID__c).up();
+      }
+      if(record.NWSHOP__Client_Predatory_Lending__c) {
+        profile.ele('tns:Client_Predatory_Lending').txt(record.NWSHOP__Client_Predatory_Lending__c).up();
+      }
+      if(record.NWSHOP__Client_Mortgage_Type__c) {
+        profile.ele('tns:Client_Mortgage_Type').txt(record.NWSHOP__Client_Mortgage_Type__c).up();
+      }
+      if(record.NWSHOP__Client_Mortgage_Type_After__c) {
+        profile.ele('tns:Client_Mortgage_Type_After').txt(record.NWSHOP__Client_Mortgage_Type_After__c).up();
+      }
+      if(record.NWSHOP__Client_Finance_Type_Before__c) {
+        profile.ele('tns:Client_Finance_Type_Before').txt(record.NWSHOP__Client_Finance_Type_Before__c).up();
+      }
+
+      if(record.NWSHOP__Client_Finance_Type_After__c) {
+        profile.ele('tns:Client_Finance_Type_After').txt(record.NWSHOP__Client_Finance_Type_After__c).up();
+      }
+      if(record.NWSHOP__Client_FirstTime_Home_Buyer__c) {
+        profile.ele('tns:Client_FirstTime_Home_Buyer').txt(record.NWSHOP__Client_FirstTime_Home_Buyer__c).up();
+      }
+      if(record.NWSHOP__Client_Discrimination_Victim__c) {
+        profile.ele('tns:Client_Discrimination_Victim').txt(record.NWSHOP__Client_Discrimination_Victim__c).up();
+      } else {
+        profile.ele('tns:Client_Discrimination_Victim').txt('N').up();
+      }
+      if(record.NWSHOP__Client_Mortgage_Closing_Cost__c) {
+        profile.ele('tns:Client_Mortgage_Closing_Cost').txt(record.NWSHOP__Client_Mortgage_Closing_Cost__c).up();
+      }
+      if(record.NWSHOP__Client_Mortgage_Interest_Rate__c) {
+        profile.ele('tns:Client_Mortgage_Interest_Rate').txt(record.NWSHOP__Client_Mortgage_Interest_Rate__c).up();
+      }
+      if(record.NWSHOP__Client_Referred_By__c) {
+        profile.ele('tns:Client_Referred_By').txt(record.NWSHOP__Client_Referred_By__c).up();
+      }
+      if(record.NWSHOP__Client_Sales_Contract_Signed__c) {
+        var date_format = new Date(record.NWSHOP__Client_Sales_Contract_Signed__c);
+        const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+          + ('0' + date_format.getDate()).slice(-2) + '-'
+          + date_format.getFullYear();
+        profile.ele('tns:Client_Sales_Contract_Signed').txt(formatted_date).up();
+      }
+      if(record.NWSHOP__Client_Credit_Score__c) {
+        profile.ele('tns:Client_Credit_Score').txt(record.NWSHOP__Client_Credit_Score__c).up();
+      }
+      if(record.NWSHOP__Client_No_Credit_Score_Reason__c) {
+        profile.ele('tns:Client_No_Credit_Score_Reason').txt(record.NWSHOP__Client_No_Credit_Score_Reason__c).up();
+      }
+      if(record.NWSHOP__Client_Credit_Score_Source__c) {
+        profile.ele('tns:Client_Credit_Score_Source').txt(record.NWSHOP__Client_Credit_Score_Source__c).up();
+      }
+      if(record.NWSHOP__Client_Job_Duration__c !== null) {
+        profile.ele('tns:Client_Job_Duration').txt(record.NWSHOP__Client_Job_Duration__c).up();
+      }
+
+      if(record.NWSHOP__Client_Household_Debt__c  !== null) {
+        profile.ele('tns:Client_Household_Debt').txt(record.NWSHOP__Client_Household_Debt__c).up();
+      }
+
+      if(record.NWSHOP__Client_Mortgage_Deliquency__c) {
+        profile.ele('tns:Client_Mortgage_Deliquency').txt(record.NWSHOP__Client_Mortgage_Deliquency__c).up();
+      }
+      if(record.NWSHOP__Client_Loan_Being_Reported__c) {
+        profile.ele('tns:Client_Loan_Being_Reported').txt(record.NWSHOP__Client_Loan_Being_Reported__c).up();
+      }
+      if(record.NWSHOP__Client_Second_Loan_Exists__c) {
+        profile.ele('tns:Client_Second_Loan_Exists').txt(record.NWSHOP__Client_Second_Loan_Exists__c).up();
+      }
+      if(record.NWSHOP__Client_Intake_Loan_Type__c) {
+        profile.ele('tns:Client_Intake_Loan_Type').txt(record.NWSHOP__Client_Intake_Loan_Type__c).up();
+      }
+      if(record.NWSHOP__Client_Intake_Loan_Type_Is_Hybrid_ARM__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Is_Hybrid_ARM').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Hybrid_ARM__c).up();
+      }
+      if(record.NWSHOP__Client_Intake_Loan_Type_Is_Option_ARM__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Is_Option_ARM').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Option_ARM__c).up();
+      }
+      if(record.NWSHOP__Client_Intake_Loan_Type_Is_Interest_Only__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Is_Interest_Only').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Interest_Only__c).up();
+      }
+      if(record.NWSHOP__Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Is_FHA_Or_VA_Insured').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c).up();
+      }
+      if(record.NWSHOP__Loan_Type_Is_Privately_Held__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Is_Privately_Held').txt(record.NWSHOP__Loan_Type_Is_Privately_Held__c).up();
+      }
+      if(record.NWSHOP__Loan_Type_Has_Interest_Rate_Reset__c) {
+        profile.ele('tns:Client_Intake_Loan_Type_Has_Interest_Rate_Reset').txt(record.NWSHOP__Loan_Type_Has_Interest_Rate_Reset__c).up();
+      }
+      if(record.NWSHOP__Client_Income_Level__c) {
+        profile.ele('tns:Client_Income_Level').txt(record.NWSHOP__Client_Income_Level__c).up();
+      }
+      if(record.NWSHOP__Client_Purpose_Of_Visit__c) {
+        profile.ele('tns:Client_Purpose_Of_Visit').txt(record.NWSHOP__Client_Purpose_Of_Visit__c).up();
+      }
+      if(record.NWSHOP__Client_Activity_Type__c) {
+        profile.ele('tns:Client_Activity_Type').txt(record.NWSHOP__Client_Activity_Type__c).up();
+      }
+      if(record.NWSHOP__X9902ReportingQuarter__c) {
+        profile.ele('tns:Client_9902_Reporting_Qtr').txt(record.NWSHOP__X9902ReportingQuarter__c).up();
+      }
+
+      if(record.NWSHOP__Client_Outcome__c) {
+        const outcome = profile.ele('tns:Client_Outcomes')
+        for(let s of record.NWSHOP__Client_Outcome__c.split(';')) {
+          outcome.ele('tns:Client_Outcome').txt(s).up();
+        }
+      }
+    }
+    root.up();
+    const xml = root.end({ prettyPrint: true });
+
+    const  strFileEncode = Buffer.from(xml).toString('base64');
+    const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
+      '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postClientData><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
+      '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '28' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
+      '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
+    const subXML1 = '<ser:submissionData>';
+    const subXML2 = '</ser:submissionData>';
+    const strEncodedSubxml = subXML1+strFileEncode+subXML2;
+    const strsubEncode = '<ser:submissionDataEncoding>TEXT/XML</ser:submissionDataEncoding>';
+    const strEnv = '</ser:postClientData></soapenv:Body></soapenv:Envelope>';
+
+    const finalBody = soapXML+strsubEncode+strEncodedSubxml+strEnv;
+
+    const config = {
+      'maxContentLength': Infinity,
+      'maxBodyLength': Infinity,
+      headers: {
+        'Content-Type' : 'text/xml; charset=UTF-8',
+        'Cache-Control' : 'no-cache',
+        'Accept-Language': 'en-us',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Authorization' : authHeader
+      }
+    }
+
+
+    console.log('### about to post')
+    axios.post(settingVal.EndpointURL__c, finalBody, config).then(res => {
+      console.log('### called axios');
+      console.log('### got res: ', res.data);
+      let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
+      console.log('### submission id: ' + submissionId);
+
+      let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
+        '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
+
+      let task = cron.schedule('* * * * *', () => {
+        axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
+          console.log('### submission id: ' + submissionId);
+          let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
+
+          console.log('### submissionStatus: ' + submissionStatus);
+          if(submissionStatus == 'DONE') {
+            conn.sobject("NWSHOP__X9902__c").update({
+              Id : recordId,
+              NWSHOP__ClientSubmissionStatus__c : submissionStatus
+            }, function(err, ret) {
+              if (err || !ret.success) { return console.error(err, ret); }
+              console.log('Updated Successfully : ' + ret.id);
+              task.stop();
+            });
+          } else if(submissionStatus.indexOf('ERROR') != -1){
+            console.log('### else submission status: ' + submissionStatus);
+            console.log('### else submission status: ' + submissionStatus);
+            conn.sobject("NWSHOP__X9902__c").update({
+              Id : recordId,
+              NWSHOP__ClientSubmissionStatus__c : resStatus.data
+            }, function(err, ret) {
+              if (err || !ret.success) { return console.error(err, ret); }
+              console.log('Updated Successfully : ' + ret.id);
+              task.stop();
+            });
+          } else {
+            conn.sobject("NWSHOP__X9902__c").update({
+              Id : recordId,
+              NWSHOP__ClientSubmissionStatus__c : submissionStatus
+            }, function(err, ret) {
+              if (err || !ret.success) { return console.error(err, ret); }
+              console.log('### status Updated Successfully : ' + ret.id);
+            });
+          }
+
+        });
+      });
+
+      conn.sobject("NWSHOP__X9902__c").update({
+        Id : recordId,
+        NWSHOP__ClientSubmissionID__c : submissionId
+      }, function(err, ret) {
+        if (err || !ret.success) { return console.error(err, ret); }
+        console.log('Updated Successfully : ' + ret.id);
+      });
+    }).catch(err => {
+      console.log('### err axios: ' + err);
+
+    });
+
+  }
+
+}
+
+
+app.get('/query', async (request, response) => {
+  console.log('### query PROFILE');
   const session = getSession(request, response);
   if (session == null) {
     return;
@@ -184,6 +608,11 @@ app.get('/query', (request, response) => {
     '                   NWSHOP__Loan_Type_Is_Privately_Held__c, NWSHOP__Client_Intake_Loan_Type_Is_Interest_Only__c, NWSHOP__Client_Income_Level__c, NWSHOP__Client_Purpose_Of_Visit__c, NWSHOP__Client_Activity_Type__c, NWSHOP__Client_City__c, \n' +
     '                   NWSHOP__Loan_Type_Has_Interest_Rate_Reset__c, NWSHOP__Client_Outcome__c, NWSHOP__X9902ReportingQuarter__c from NWSHOP__X9902_Client__c where NWSHOP__X9902__c = \'' + request.query.q +'\'';
   console.log('### aaa query: ' + JSON.stringify(request.query));
+
+  if (!query) {
+    response.status(400).send('Missing query parameter.');
+    return;
+  }
   const settingVal = {
     Username__c: request.query.username,                                        // SEND PARAMS
     Password__c: request.query.password,                                      // SEND PARAMS
@@ -193,421 +622,22 @@ app.get('/query', (request, response) => {
     VendorID__c: '93',
     AgencyID__c: request.query.agencyid,     // grab from call
   };
+  // const settingVal = {
+  //   Username__c: request.query.username,                                        // SEND PARAMS
+  //   Password__c: request.query.password,                                      // SEND PARAMS
+  //   EndpointURL__c: 'https://armpilot.hud.gov:9001/ARM/ARM',
+  //   AgencyName__c: 'NWCompass',
+  //   CMSPassword__c: '*3jmjWG3',
+  //   VendorID__c: '95',
+  //   AgencyID__c: request.query.agencyid,     // grab from call
+  // };
 
-  console.log('### query final: ' + query);
-  if (!query) {
-    response.status(400).send('Missing query parameter.');
-    return;
-  }
-  const conn = resumeSalesforceConnection(session);
+  doQueryProfile(session, settingVal, query, request.query.q);
 
-  // conn.query('SELECT Name, EndpointURL__c, AgencyId__c, AgencyName__c, Username__c, Password__c, CMSPassword__c, VendorId__c FROM NWSHOP__IntegrationSettings__c WHERE Name = \'HUD Settings\'', (error, customSetting) => {
-    conn.query(query, (error, result) => {
-      if (error) {
-        console.error('Salesforce data API error: ' + JSON.stringify(error));
-        response.status(500).json(error);
-        return;
-      } else {
-
-
-
-        console.log('### settingVal: ' + JSON.stringify(settingVal));
-        let authHeader = 'Basic ' + Buffer.from(settingVal.Username__c + ':' + settingVal.Password__c).toString('base64');
-        console.log('### authHeader: ' + authHeader);
-
-        let root = create({ version: '1.0', encoding: 'UTF-8' })
-          .ele('tns:SubmissionData', {
-            'xsi:schemaLocation': 'http://gov.hud.arm/client_profile_databag_6_0 client_profile_databag_6_0.xsd',
-            'xmlns:tns' : 'http://gov.hud.arm/client_profile_databag_6_0',
-            'xmlns:xsi' : 'http://www.w3.org/2001/XMLSchema-instance'
-          }).ele('tns:Client_Profiles');
-
-        for(let record of result.records) {
-          const profile = root.ele('tns:Client_Profile');
-          if(record.NWSHOP__Client_ID_Num__c) {
-            profile.ele('tns:Client_ID_Num').txt(record.NWSHOP__Client_ID_Num__c).up();
-          }
-          if(record.NWSHOP__Client_Case_Num__c) {
-            profile.ele('tns:Client_Case_Num').txt(record.NWSHOP__Client_Case_Num__c).up();
-          }
-          if(record.NWSHOP__Client_City__c) {
-            profile.ele('tns:Client_City').txt(record.NWSHOP__Client_City__c).up();
-          }
-          if(record.NWSHOP__Client_State__c) {
-            profile.ele('tns:Client_State').txt(record.NWSHOP__Client_State__c).up();
-          }
-          if(record.NWSHOP__Client_Zip__c) {
-            profile.ele('tns:Client_Zip').txt(record.NWSHOP__Client_Zip__c).up();
-          }
-          if(record.NWSHOP__Client_New_City__c) {
-            profile.ele('tns:Client_New_City').txt(record.NWSHOP__Client_New_City__c).up();
-          }
-          if(record.NWSHOP__Client_New_State__c) {
-            profile.ele('tns:Client_New_State').txt(record.NWSHOP__Client_New_State__c).up();
-          }
-          if(record.NWSHOP__Client_New_Zip__c) {
-            profile.ele('tns:Client_New_Zip').txt(record.NWSHOP__Client_New_Zip__c).up();
-          }
-
-          if(record.NWSHOP__Client_Family_Size__c) {
-            profile.ele('tns:Client_Family_Size').txt(record.NWSHOP__Client_Family_Size__c).up();
-          }
-          if(record.NWSHOP__Client_Gender__c) {
-            profile.ele('tns:Client_Gender').txt(record.NWSHOP__Client_Gender__c).up();
-          }
-          if(record.NWSHOP__Client_Marital_Status__c) {
-            profile.ele('tns:Client_Marital_Status').txt(record.NWSHOP__Client_Marital_Status__c).up();
-          }
-          if(record.NWSHOP__Client_Race_ID__c) {
-            profile.ele('tns:Client_Race_ID').txt(record.NWSHOP__Client_Race_ID__c).up();
-          }
-          if(record.NWSHOP__Client_Ethnicity_ID__c) {
-            profile.ele('tns:Client_Ethnicity_ID').txt(record.NWSHOP__Client_Ethnicity_ID__c).up();
-          }
-
-          if(record.NWSHOP__Client_Household_Gross_Monthly_Income__c) {
-            profile.ele('tns:Client_Household_Gross_Monthly_Income').txt(record.NWSHOP__Client_Household_Gross_Monthly_Income__c).up();
-          }
-          if(record.NWSHOP__Client_Head_Of_Household_Type__c) {
-            profile.ele('tns:Client_Head_Of_Household_Type').txt(record.NWSHOP__Client_Head_Of_Household_Type__c).up();
-          }
-          if(record.NWSHOP__Client_Counselor_ID__c) {
-            profile.ele('tns:Client_Counselor_ID').txt(record.NWSHOP__Client_Counselor_ID__c).up();
-          }
-          if(record.NWSHOP__Client_Counselor_HUD_Id__c) {
-            profile.ele('tns:Client_Counselor_HUD_Id').txt(record.NWSHOP__Client_Counselor_HUD_Id__c).up();
-          }
-          if(record.NWSHOP__Client_Highest_Educ_Grade__c) {
-            profile.ele('tns:Client_Highest_Educ_Grade').txt(record.NWSHOP__Client_Highest_Educ_Grade__c).up();
-          }
-          if(record.NWSHOP__Client_Farm_Worker__c) {
-            profile.ele('tns:Client_Farm_Worker').txt(record.NWSHOP__Client_Farm_Worker__c).up();
-          }
-          if(record.NWSHOP__Client_Rural_Area__c) {
-            profile.ele('tns:Client_Rural_Area').txt(record.NWSHOP__Client_Rural_Area__c).up();
-          }
-          if(record.NWSHOP__Client_Limited_English_Proficiency__c) {
-            profile.ele('tns:Client_Limited_English_Proficiency').txt(record.NWSHOP__Client_Limited_English_Proficiency__c).up();
-          }
-
-          if(record.NWSHOP__Client_Colonias_Resident__c) {
-            profile.ele('tns:Client_Colonias_Resident').txt(record.NWSHOP__Client_Colonias_Resident__c).up();
-          }
-          if(record.NWSHOP__Client_HUD_Assistance__c) {
-            profile.ele('tns:Client_HUD_Assistance').txt(record.NWSHOP__Client_HUD_Assistance__c).up();
-          }
-          if(record.NWSHOP__Client_Disabled__c) {
-            profile.ele('tns:Client_Disabled').txt(record.NWSHOP__Client_Disabled__c).up();
-          }
-          if(record.NWSHOP__Client_Dependents_Num__c !== null) {
-            profile.ele('tns:Client_Dependents_Num').txt(record.NWSHOP__Client_Dependents_Num__c).up();
-          }
-
-
-          if(record.NWSHOP__Client_Intake_DT__c) {
-
-            var date_format = new Date(record.NWSHOP__Client_Intake_DT__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear();
-            profile.ele('tns:Client_Intake_DT').txt(formatted_date).up();
-          }
-          if(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c) {
-
-            var date_format = new Date(record.NWSHOP__Client_Counsel_Start_Session_DateTime__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear() + ' 12:00';
-            profile.ele('tns:Client_Counsel_Start_Session_DateTime').txt(formatted_date).up();
-          }
-          if(record.NWSHOP__Client_Counsel_End_Session_DateTime__c) {
-
-            var date_format = new Date(record.NWSHOP__Client_Counsel_End_Session_DateTime__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear() + ' 12:00';
-
-            profile.ele('tns:Client_Counsel_End_Session_DateTime').txt(formatted_date).up();
-          }
-
-          if(record.NWSHOP__Client_Language_Spoken__c) {
-            profile.ele('tns:Client_Language_Spoken').txt(record.NWSHOP__Client_Language_Spoken__c).up();
-          }
-          if(record.NWSHOP__Client_Session_Duration__c !== null) {
-            profile.ele('tns:Client_Session_Duration').txt(record.NWSHOP__Client_Session_Duration__c).up();
-          }
-
-          if(record.NWSHOP__Client_Counseling_Type__c) {
-            profile.ele('tns:Client_Counseling_Type').txt(record.NWSHOP__Client_Counseling_Type__c).up();
-          }
-          if(record.NWSHOP__Client_Counseling_Termination__c) {
-            profile.ele('tns:Client_Counseling_Termination').txt(record.NWSHOP__Client_Counseling_Termination__c).up();
-          }
-          if(record.NWSHOP__Client_Counseling_Fee__c !== null) {
-            profile.ele('tns:Client_Counseling_Fee').txt(record.NWSHOP__Client_Counseling_Fee__c).up();
-          }
-
-          if(record.NWSHOP__Client_Attribute_HUD_Grant__c) {
-            profile.ele('tns:Client_Attribute_HUD_Grant').txt(record.NWSHOP__Client_Attribute_HUD_Grant__c).up();
-          }
-          if(record.NWSHOP__Client_Grant_Amount_Used__c) {
-            profile.ele('tns:Client_Grant_Amount_Used').txt(record.NWSHOP__Client_Grant_Amount_Used__c).up();
-          }
-          if(record.NWSHOP__Client_HECM_Certificate__c) {
-            profile.ele('tns:Client_HECM_Certificate').txt(record.NWSHOP__Client_HECM_Certificate__c).up();
-          }
-
-          if(record.NWSHOP__Client_HECM_Certificate_Issue_Date__c) {
-            var date_format = new Date(record.NWSHOP__Client_HECM_Certificate_Issue_Date__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear();
-            profile.ele('tns:Client_HECM_Certificate_Issue_Date').txt(formatted_date).up();
-          }
-          if(record.NWSHOP__Client_HECM_Certificate_Expiration_Date__c) {
-            var date_format = new Date(record.NWSHOP__Client_HECM_Certificate_Expiration_Date__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear();
-            profile.ele('tns:Client_HECM_Certificate_Expiration_Date').txt(formatted_date).up();
-          }
-
-          if(record.NWSHOP__Client_HECM_Certificate_ID__c) {
-            profile.ele('tns:Client_HECM_Certificate_ID').txt(record.NWSHOP__Client_HECM_Certificate_ID__c).up();
-          }
-          if(record.NWSHOP__Client_Predatory_Lending__c) {
-            profile.ele('tns:Client_Predatory_Lending').txt(record.NWSHOP__Client_Predatory_Lending__c).up();
-          }
-          if(record.NWSHOP__Client_Mortgage_Type__c) {
-            profile.ele('tns:Client_Mortgage_Type').txt(record.NWSHOP__Client_Mortgage_Type__c).up();
-          }
-          if(record.NWSHOP__Client_Mortgage_Type_After__c) {
-            profile.ele('tns:Client_Mortgage_Type_After').txt(record.NWSHOP__Client_Mortgage_Type_After__c).up();
-          }
-          if(record.NWSHOP__Client_Finance_Type_Before__c) {
-            profile.ele('tns:Client_Finance_Type_Before').txt(record.NWSHOP__Client_Finance_Type_Before__c).up();
-          }
-
-          if(record.NWSHOP__Client_Finance_Type_After__c) {
-            profile.ele('tns:Client_Finance_Type_After').txt(record.NWSHOP__Client_Finance_Type_After__c).up();
-          }
-          if(record.NWSHOP__Client_FirstTime_Home_Buyer__c) {
-            profile.ele('tns:Client_FirstTime_Home_Buyer').txt(record.NWSHOP__Client_FirstTime_Home_Buyer__c).up();
-          }
-          if(record.NWSHOP__Client_Discrimination_Victim__c) {
-            profile.ele('tns:Client_Discrimination_Victim').txt(record.NWSHOP__Client_Discrimination_Victim__c).up();
-          } else {
-            profile.ele('tns:Client_Discrimination_Victim').txt('N').up();
-          }
-          if(record.NWSHOP__Client_Mortgage_Closing_Cost__c) {
-            profile.ele('tns:Client_Mortgage_Closing_Cost').txt(record.NWSHOP__Client_Mortgage_Closing_Cost__c).up();
-          }
-          if(record.NWSHOP__Client_Mortgage_Interest_Rate__c) {
-            profile.ele('tns:Client_Mortgage_Interest_Rate').txt(record.NWSHOP__Client_Mortgage_Interest_Rate__c).up();
-          }
-          if(record.NWSHOP__Client_Referred_By__c) {
-            profile.ele('tns:Client_Referred_By').txt(record.NWSHOP__Client_Referred_By__c).up();
-          }
-          if(record.NWSHOP__Client_Sales_Contract_Signed__c) {
-            var date_format = new Date(record.NWSHOP__Client_Sales_Contract_Signed__c);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear();
-            profile.ele('tns:Client_Sales_Contract_Signed').txt(formatted_date).up();
-          }
-          if(record.NWSHOP__Client_Credit_Score__c) {
-            profile.ele('tns:Client_Credit_Score').txt(record.NWSHOP__Client_Credit_Score__c).up();
-          }
-          if(record.NWSHOP__Client_No_Credit_Score_Reason__c) {
-            profile.ele('tns:Client_No_Credit_Score_Reason').txt(record.NWSHOP__Client_No_Credit_Score_Reason__c).up();
-          }
-          if(record.NWSHOP__Client_Credit_Score_Source__c) {
-            profile.ele('tns:Client_Credit_Score_Source').txt(record.NWSHOP__Client_Credit_Score_Source__c).up();
-          }
-          if(record.NWSHOP__Client_Job_Duration__c !== null) {
-            profile.ele('tns:Client_Job_Duration').txt(record.NWSHOP__Client_Job_Duration__c).up();
-          }
-
-          if(record.NWSHOP__Client_Household_Debt__c  !== null) {
-            profile.ele('tns:Client_Household_Debt').txt(record.NWSHOP__Client_Household_Debt__c).up();
-          }
-
-          if(record.NWSHOP__Client_Mortgage_Deliquency__c) {
-            profile.ele('tns:Client_Mortgage_Deliquency').txt(record.NWSHOP__Client_Mortgage_Deliquency__c).up();
-          }
-          if(record.NWSHOP__Client_Loan_Being_Reported__c) {
-            profile.ele('tns:Client_Loan_Being_Reported').txt(record.NWSHOP__Client_Loan_Being_Reported__c).up();
-          }
-          if(record.NWSHOP__Client_Second_Loan_Exists__c) {
-            profile.ele('tns:Client_Second_Loan_Exists').txt(record.NWSHOP__Client_Second_Loan_Exists__c).up();
-          }
-          if(record.NWSHOP__Client_Intake_Loan_Type__c) {
-            profile.ele('tns:Client_Intake_Loan_Type').txt(record.NWSHOP__Client_Intake_Loan_Type__c).up();
-          }
-          if(record.NWSHOP__Client_Intake_Loan_Type_Is_Hybrid_ARM__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Is_Hybrid_ARM').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Hybrid_ARM__c).up();
-          }
-          if(record.NWSHOP__Client_Intake_Loan_Type_Is_Option_ARM__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Is_Option_ARM').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Option_ARM__c).up();
-          }
-          if(record.NWSHOP__Client_Intake_Loan_Type_Is_Interest_Only__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Is_Interest_Only').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_Interest_Only__c).up();
-          }
-          if(record.NWSHOP__Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Is_FHA_Or_VA_Insured').txt(record.NWSHOP__Client_Intake_Loan_Type_Is_FHA_Or_VA_Ins__c).up();
-          }
-          if(record.NWSHOP__Loan_Type_Is_Privately_Held__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Is_Privately_Held').txt(record.NWSHOP__Loan_Type_Is_Privately_Held__c).up();
-          }
-          if(record.NWSHOP__Loan_Type_Has_Interest_Rate_Reset__c) {
-            profile.ele('tns:Client_Intake_Loan_Type_Has_Interest_Rate_Reset').txt(record.NWSHOP__Loan_Type_Has_Interest_Rate_Reset__c).up();
-          }
-          if(record.NWSHOP__Client_Income_Level__c) {
-            profile.ele('tns:Client_Income_Level').txt(record.NWSHOP__Client_Income_Level__c).up();
-          }
-          if(record.NWSHOP__Client_Purpose_Of_Visit__c) {
-            profile.ele('tns:Client_Purpose_Of_Visit').txt(record.NWSHOP__Client_Purpose_Of_Visit__c).up();
-          }
-          if(record.NWSHOP__Client_Activity_Type__c) {
-            profile.ele('tns:Client_Activity_Type').txt(record.NWSHOP__Client_Activity_Type__c).up();
-          }
-          if(record.NWSHOP__X9902ReportingQuarter__c) {
-            profile.ele('tns:Client_9902_Reporting_Qtr').txt(record.NWSHOP__X9902ReportingQuarter__c).up();
-          }
-
-          if(record.NWSHOP__Client_Outcome__c) {
-            const outcome = profile.ele('tns:Client_Outcomes')
-            for(let s of record.NWSHOP__Client_Outcome__c.split(';')) {
-              outcome.ele('tns:Client_Outcome').txt(s).up();
-            }
-          }
-        }
-        root.up();
-        const xml = root.end({ prettyPrint: true });
-        console.log(xml);
-
-
-        const  strFileEncode = Buffer.from(xml).toString('base64');
-        const soapXML = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/">' +
-          '<soapenv:Header></soapenv:Header><soapenv:Body><ser:postClientData><ser:submissionHeader6.0><ser:agcHcsId>' + settingVal.AgencyID__c +
-          '</ser:agcHcsId><ser:agcName>' + settingVal.AgencyName__c + '</ser:agcName><ser:fiscalYearId>' + '28' + '</ser:fiscalYearId><ser:cmsVendorId>'+settingVal.VendorID__c+'</ser:cmsVendorId>' +
-          '<ser:cmsPassword>'+settingVal.CMSPassword__c+'</ser:cmsPassword></ser:submissionHeader6.0>';
-        const subXML1 = '<ser:submissionData>';
-        const subXML2 = '</ser:submissionData>';
-        const strEncodedSubxml = subXML1+strFileEncode+subXML2;
-        const strsubEncode = '<ser:submissionDataEncoding>TEXT/XML</ser:submissionDataEncoding>';
-        const strEnv = '</ser:postClientData></soapenv:Body></soapenv:Envelope>';
-
-        const finalBody = soapXML+strsubEncode+strEncodedSubxml+strEnv;
-
-        const config = {
-          headers: {
-            'Content-Type' : 'text/xml; charset=UTF-8',
-            'Cache-Control' : 'no-cache',
-            'Accept-Language': 'en-us',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Authorization' : authHeader
-          }
-        }
-
-        console.log('### headers: ' + JSON.stringify(headers));
-        console.log('### about to post')
-        axios.post(settingVal.EndpointURL__c, finalBody, config).then(res => {
-          console.log('### called axios');
-          console.log('### got res: ', res.data);
-          let submissionId = res.data.substring(res.data.indexOf('<submissionId>')+14, res.data.indexOf('</submissionId>'));
-          console.log('### submission id: ' + submissionId);
-
-          let statusXml ='<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.arm.hud.gov/"><soapenv:Header></soapenv:Header>' +
-            '<soapenv:Body><ser:getSubmissionInfo><ser:agcHcsId>'+settingVal.AgencyID__c+'</ser:agcHcsId><ser:submissionId>'+submissionId+'</ser:submissionId></ser:getSubmissionInfo></soapenv:Body></soapenv:Envelope>';
-
-          let task = cron.schedule('* * * * *', () => {
-            axios.post(settingVal.EndpointURL__c, statusXml, config).then(resStatus => {
-              console.log('### submission id: ' + submissionId);
-              console.log('### aaaaaa: ' + submissionId);
-              // console.log(resStatus);
-
-              let submissionStatus = resStatus.data.substring(resStatus.data.indexOf('<statusMessage>')+15,resStatus.data.indexOf('</statusMessage>'));
-
-              console.log('### submissionStatus: ' + submissionStatus);
-              if(submissionStatus == 'DONE') {
-                conn.sobject("NWSHOP__X9902__c").update({
-                  Id : request.query.q,
-                  NWSHOP__ClientSubmissionStatus__c : submissionStatus
-                }, function(err, ret) {
-                  if (err || !ret.success) { return console.error(err, ret); }
-                  console.log('Updated Successfully : ' + ret.id);
-                  task.stop();
-                });
-              } else if(submissionStatus.indexOf('ERROR') != -1){
-                console.log('### else submission status: ' + submissionStatus);
-                console.log('### else submission status: ' + submissionStatus);
-                conn.sobject("NWSHOP__X9902__c").update({
-                  Id : request.query.q,
-                  NWSHOP__ClientSubmissionStatus__c : resStatus.data
-                }, function(err, ret) {
-                  if (err || !ret.success) { return console.error(err, ret); }
-                  console.log('Updated Successfully : ' + ret.id);
-                  task.stop();
-                });
-              }
-
-            });
-          });
-
-          conn.sobject("NWSHOP__X9902__c").update({
-            Id : request.query.q,
-            NWSHOP__ClientSubmissionID__c : submissionId
-          }, function(err, ret) {
-            if (err || !ret.success) { return console.error(err, ret); }
-            console.log('Updated Successfully : ' + ret.id);
-            response.json({ submissionId: submissionId, sentXml: xml });
-          });
-        }).catch(err => {
-          console.log('### err axios: ' + err);
-
-        });
-
-      }
-    });
-  // });
+  response.status(200).send('Processing now, this will take a moment. Please check salesforce.');
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function doMoreQuery(conn, nextRecordsUrl) {
-  return new Promise((resolve, reject) => {
-    console.log('### doing more query: ' + nextRecordsUrl);
-    conn.queryMore(nextRecordsUrl, (error, result) => {
-      console.log('#### error');
-      console.log(error);
-      resolve(result);
-    });
-  });
-}
-
-
-function doQuery(query, conn) {
-  return new Promise((resolve, reject) => {
-    conn.query(query, (err, data) => {
-      if (err) return reject(err);
-      resolve(data);
-    });
-  });
-}
 
 const doQuerySummary = async (session, settingVal, query, recordId) => {
   const conn = resumeSalesforceConnection(session);
@@ -910,6 +940,8 @@ const doQuerySummary = async (session, settingVal, query, recordId) => {
     const finalBody = soapXML+strsubEncode+strEncodedSubxml+strEnv;
 
     const config = {
+      'maxContentLength': Infinity,
+      'maxBodyLength': Infinity,
       headers: {
         'Content-Type' : 'text/xml; charset=UTF-8',
         'Cache-Control' : 'no-cache',
@@ -953,7 +985,6 @@ const doQuerySummary = async (session, settingVal, query, recordId) => {
               task.stop();
             });
           }
-
         });
       });
 
@@ -975,6 +1006,10 @@ const doQuerySummary = async (session, settingVal, query, recordId) => {
   }
 }
 
+
+/**
+ *
+ */
 app.get('/query-summary', async (request, response) => {
   console.log('### query summary');
   const session = getSession(request, response);

@@ -46,7 +46,12 @@ export default class App extends React.Component {
         console.log(json);
 
       });
-      this.setState({ result : response.statusText });
+      if(response.statusText === 'OK') {
+        this.setState({ result : 'Processing now, check the 9902 record in Salesforce.' });
+      } else {
+        this.setState({ result : response.statusText });
+      }
+
     });
   };
 
@@ -66,13 +71,13 @@ export default class App extends React.Component {
       response.json().then((json) => {
         console.log(json);
       });
-      console.log('### resp');
-      console.log('### resp1: ', response);
-      // response.json().then((json) => {
-      //   console.log(json);
-      //
-      // });
-      this.setState({ result : response.statusText });
+
+      if(response.statusText === 'OK') {
+        this.setState({ result : 'Processing now, check the 9902 record in Salesforce.' });
+      } else {
+        this.setState({ result : response.statusText });
+      }
+
     });
   };
 
