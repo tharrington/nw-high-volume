@@ -164,8 +164,7 @@ function doMoreQuery(conn, nextRecordsUrl) {
   return new Promise((resolve, reject) => {
     console.log('### doing more query: ' + nextRecordsUrl);
     conn.queryMore(nextRecordsUrl, (error, result) => {
-      console.log('#### error');
-      console.log(error);
+
       resolve(result);
     });
   });
@@ -871,40 +870,42 @@ const doQuerySummary = async (session, settingVal, query, recordId) => {
     for(let gs of gslst9902){
       GSMap[gs.Group_Session_Id__c] = gs;
     }
-    const group_sessions = root.ele('tns:Group_Sessions');
-    for(const [sumKey, value] of Object.entries(GSMap)) {
-      let objAP1 = GSMap[sumKey];
-      const profile = group_sessions.ele('tns:Group_Session');
+    if(gslst9902.length > 0) {
+      const group_sessions = root.ele('tns:Group_Sessions');
+      for(const [sumKey, value] of Object.entries(GSMap)) {
+        let objAP1 = GSMap[sumKey];
+        const profile = group_sessions.ele('tns:Group_Session');
 
-      for(const [key, value] of Object.entries(gstagMap)) {
+        for(const [key, value] of Object.entries(gstagMap)) {
 
-        if(objAP1[gstagMap[key]]) {
-          if (key == 'Group_Session_Date') {
-            var date_format = new Date(objAP1[gstagMap[key]]);
-            const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
-              + ('0' + date_format.getDate()).slice(-2) + '-'
-              + date_format.getFullYear();
+          if(objAP1[gstagMap[key]]) {
+            if (key == 'Group_Session_Date') {
+              var date_format = new Date(objAP1[gstagMap[key]]);
+              const formatted_date = ('0' + (date_format.getMonth()+1)).slice(-2) + '-'
+                + ('0' + date_format.getDate()).slice(-2) + '-'
+                + date_format.getFullYear();
 
-            profile.ele('tns:' + key).txt(formatted_date).up();
-          } else {
-            profile.ele('tns:' + key).txt(objAP1[gstagMap[key]].toString()).up();
+              profile.ele('tns:' + key).txt(formatted_date).up();
+            } else {
+              profile.ele('tns:' + key).txt(objAP1[gstagMap[key]].toString()).up();
+            }
           }
         }
-      }
 
-      const sessionAttendees = profile.ele('tns:Group_Session_Attendees');
-      for(let objAP2 of gsalst9902){
-        if(objAP2.Group_Session_Id__c == objAP1.Group_Session_Id__c){
+        const sessionAttendees = profile.ele('tns:Group_Session_Attendees');
+        for(let objAP2 of gsalst9902){
+          if(objAP2.Group_Session_Id__c == objAP1.Group_Session_Id__c){
 
 
-          const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
-          for(const [key, value] of Object.entries(gsatagMap)){
-            if(objAP2[gsatagMap[key]]) {
-              sessionAttendee.ele('tns:' + key).txt(objAP2[gsatagMap[key]]).up();
-            } else if(key == 'Attendee_Fee_Amount') {
-              sessionAttendee.ele('tns:' + key).txt('0').up();
-            } else if(key == 'Attendee_Fee_Amount') {
-              sessionAttendee.ele('tns:' + key).txt('0').up();
+            const sessionAttendee = sessionAttendees.ele('tns:Group_Session_Attendee');
+            for(const [key, value] of Object.entries(gsatagMap)){
+              if(objAP2[gsatagMap[key]]) {
+                sessionAttendee.ele('tns:' + key).txt(objAP2[gsatagMap[key]]).up();
+              } else if(key == 'Attendee_Fee_Amount') {
+                sessionAttendee.ele('tns:' + key).txt('0').up();
+              } else if(key == 'Attendee_Fee_Amount') {
+                sessionAttendee.ele('tns:' + key).txt('0').up();
+              }
             }
           }
         }
@@ -912,16 +913,20 @@ const doQuerySummary = async (session, settingVal, query, recordId) => {
     }
 
 
-    const attendees = root.ele('tns:Attendees');
-    for(let objAp of alst9902) {
-      const attendee = attendees.ele('tns:Attendee');
-      for (const [key, value] of Object.entries(atagMap)) {
-        if(objAp[atagMap[key]]) {
-          attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
-        }
-      }
 
+    if(alst9902.length > 0) {
+      const attendees = root.ele('tns:Attendees');
+      for(let objAp of alst9902) {
+        const attendee = attendees.ele('tns:Attendee');
+        for (const [key, value] of Object.entries(atagMap)) {
+          if(objAp[atagMap[key]]) {
+            attendee.ele('tns:' + key).txt(objAp[atagMap[key]]).up();
+          }
+        }
+
+      }
     }
+
 
     root.up();
     const xml = root.end({ prettyPrint: true });
@@ -1053,3 +1058,4 @@ app.get('/query-summary', async (request, response) => {
 app.listen(app.get('port'), () => {
   console.log('### running on port: ' + app.get('port'));
 });
+
